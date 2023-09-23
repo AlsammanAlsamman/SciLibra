@@ -1,23 +1,31 @@
-# SciLibra - PDF Article Organizer for Mobile and Descktops
+# SciLibra - PDF Article Organizer for Mobile
 
-Welcome to SciLibra, your go-to solution for managing and organizing your scientific PDF articles on mobile devices. Whether you're a researcher, student, or academic, SciLibra is designed to streamline your literature collection and help you stay organized on the go.
+Welcome to the SciLibra project! SciLibra is a mobile application designed to help you organize and manage your scientific PDF articles with ease. Whether you're a researcher, student, or academic, this project aims to simplify your literature collection.
 
-## Key Features
+## Project Status
 
-- **PDF Article Management:** SciLibra allows you to import and organize your PDF articles effortlessly. Say goodbye to the clutter and confusion of scattered research papers.
+**Note:** This project is currently a solo endeavor, and I am actively working on it. Here's what you need to know:
 
-- **User-Friendly GUI:** Our Python application, built using Kivy, boasts an intuitive graphical user interface (GUI). The GUI includes a tree view to display your list of articles and clusters, making it easy to navigate and locate specific research papers.
+- I am working diligently to create a user-friendly interface for PDF article organization.
+- Features like PDF import, cluster creation, and navigation are in progress.
+- I am continuously improving the project and actively addressing any issues that arise.
 
-- **Cluster Selection:** With SciLibra, you can categorize your articles into clusters, helping you group related materials together. The code provides buttons that enable you to select and explore specific clusters of articles conveniently.
+## Getting Involved
 
-- **Seamless Navigation:** SciLibra is designed for a smooth user experience. The provided code includes a build function that returns the main screen of the application, ensuring you can access your library with ease.
+While this project is primarily a solo effort, I welcome any feedback or suggestions you might have. Your input can greatly benefit the development process.
 
-## Get Started
+- **Feedback:** Have suggestions, questions, or feedback? Don't hesitate to open an issue or reach out. I appreciate your input, which helps shape the project.
 
-To get started with SciLibra, simply clone this GitHub repository and follow our installation instructions in the documentation. Feel free to contribute, report issues, or provide feedback to help us enhance this valuable tool for the scientific community.
+## How to Run the Project
 
-## Installation
+At this early stage, I recommend that you keep an eye on this repository for updates. I will provide installation and usage instructions as soon as the project reaches a stable milestone.
 
-1. Clone this repository to your local machine.
-   ```shell
-   git clone https://github.com/AlsammanAlsamman/SciLibra.git
+## Stay Updated
+
+To stay updated on the project's progress and announcements, watch this repository for the latest news.
+
+I appreciate your interest in SciLibra, and I'm committed to building a useful tool for researchers like you!
+
+## License
+
+This project is licensed under the [MIT License](LICENSE).
