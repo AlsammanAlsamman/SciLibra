@@ -32,4 +32,3 @@ To run SciLibra, make sure you have Python, Kivy, and pylatexenc installed on yo
 ## Usage
 
 python SciLibra.py
-
