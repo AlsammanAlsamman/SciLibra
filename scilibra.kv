@@ -1,0 +1,364 @@
+#:kivy 1.11.0
+#:import Factory kivy.factory.Factory
+<MenuBar>:
+    height: self.minimum_height
+    orientation: 'vertical'
+    size_hint: 1, None
+    tree_view_drop: tree_view_drop
+    actions_drop: actions_drop.__self__
+    ActionBar:
+        size : root.width, 40
+        pos: 0, root.height - self.height
+        # lime background color
+        background_color: 0.678, 1, 0.184, 1
+        ActionView:
+            use_separator: True
+            ActionPrevious:
+                title: 'SciLibra'
+                with_previous: False
+                app_icon: 'icon.png'
+            ActionButton:
+                text: 'help'
+                # open small dialog with help
+                on_release: root.show_help()
+            ActionButton:
+                text: 'quit'
+                on_release: app.stop()
+            ActionButton:
+                text: 'about'
+                # create a dropdown menu
+                on_press: root.show_about()
+            ActionButton:
+                text: 'Tree view'
+                on_release: tree_view_drop.open(self)
+                DropDown:
+                    id: tree_view_drop
+                    size_hint: None, None
+            ActionButton:
+                text: 'Load'
+                on_release: root.show_load()
+                
+            ActionButton:
+                text: 'Actions'
+                on_release: actions_drop.open(self)
+                DropDown:
+                    id: actions_drop
+                    auto_width: False
+                    Button:
+                        text: 'Update Paths'
+                        size_hint: None, None
+                        height: 44
+                        on_release: root.updatefolderpath()
+            # empty action item to fill the space
+            ActionButton:
+                text: ''
+                size_hint_x: 0.5
+                
+
+# create text input to show the information of the current selected article
+<ArticleInfo>:
+    # inherit from TextInput
+    multiline: True
+    readonly: True
+    # no selection
+    selectable: False
+    # no cursor
+    cursor_color: 0, 0, 0, 0
+    # selection color
+    selection_color: 0, 0, 0, 0
+    # lemon background
+    background_color: 1, 1, 0.8, 1
+
+<MainScreen>:
+    name: 'main'
+    article_info: article_info
+    menu_bar: menu_bar
+    tree_view: tree_view
+    GridLayout:
+        cols: 1
+        rows: 2
+        MenuBar:
+            height: 40
+            id: menu_bar
+            pos: 0, root.height - self.height
+        GridLayout:
+            cols: 2
+            rows: 1
+            # BoxLayout:
+            ScrollView:
+                pos: 0, 0
+                scroll_y: 0
+                scroll_type: ['bars', 'content']
+                canvas.before:
+                    Color:
+                        #154.0,209.0,75.0
+                        rgba: 0.6, 0.2, 0.2, 1
+                    Rectangle:
+                        pos: self.pos
+                        size: self.size
+                TreeView:
+                    # red
+                    canvas.before:
+                        Color:
+                            #154.0,209.0,75.0
+                            rgba: 0.6, 0.2, 0.2, 1
+                        Rectangle:
+                            pos: self.pos
+                            size: self.size
+                    root_options: {'text': 'Articles'}
+                    id: tree_view
+                    height: self.minimum_height 
+                    size_hint_y: None
+            GridLayout:
+                cols: 1
+                rows: 2
+                RstDocument:
+                    id: article_info
+                    text: 'Please select an article'
+                BoxLayout:
+                    size_hint_y: None
+                    height: 50
+                    width: 120
+                    Button:
+                        # back ground image
+                        text: 'Open'
+                        #rgb(173,255,47)
+                        background_color: 0.678, 0.847, 0.902, 1
+                        on_release: root.parent.open_article()
+                    Button:
+                        text: 'Edit'
+                        #rgb(173,255,47)
+                        background_color: 0.678, 0.847, 0.902, 1
+                        # on_release: root.edit_article()
+                        on_release: root.manager.current = 'Edit'
+                    Button:
+                        text: 'Delete'
+                        #rgb(173,255,47)
+                        background_color: 0.678, 0.847, 0.902, 1
+                        # on_release: root.delete_article()
+                    
+<LoadDialog>:
+    BoxLayout:
+        size: root.size
+        pos: root.pos
+        orientation: "vertical"
+        FileChooserListView:
+            id: filechooser
+            path: "/home/samman/Documents/MobileApplications/Learn/SciLibra"
+            filters: ['*.bib', '*.txt']
+
+        GridLayout:
+            cols: 2
+            rows: 1
+            size_hint_y: None
+            height: 30
+            Button:
+                text: "Cancel"
+                on_release: root.cancel()
+
+            Button:
+                text: "Load"
+                on_release: root.load(filechooser.path, filechooser.selection)
+                
+
+<ArticleInfoBlockSingleLine>:
+    title_text: 'some value'
+    # create a box layout
+    BoxLayout:
+        orientation: 'vertical'
+        size_hint_y: None
+        height: 60
+        title_text: title_text
+        title_value: title_value
+        # make the color of the background
+        canvas.before:
+            Color: # grey
+                rgba: 0.8, 0.8, 0.8, 1  # Light gray color (adjust values as needed)
+            Rectangle:
+                pos: self.pos
+                size: self.size
+        Label:
+            size_hint_y: None
+            id: title_text
+            height: 20
+        TextInput:
+            id: title
+            id: title_value
+            size_hint_y: None
+            height: 30
+
+<ArticleInfoBlockMultiLine>:
+    BoxLayout:
+        orientation: 'vertical'
+        size_hint_y: None
+        height: 100
+        title_text: title_text
+        title_value: title_value
+        canvas.before:
+            Color: # light grey
+                rgba: 0.8, 0.8, 0.8, 1  # Light gray color (adjust values as needed)
+            Rectangle:
+                pos: self.pos
+                size: self.size
+        Label:
+            size_hint_y: None
+            id: title_text
+            height: 10
+        TextInput:
+            id: title_value
+            size_hint_y: None
+            multiline: True
+            height: 50
+
+<EditScreen>:
+    name: 'Edit'
+    article_title: article_title
+    # labels and text boxes for article information
+    GridLayout:
+        cols: 1
+        rows: 3
+        Label:
+            text: 'Edit Article'
+            font_size: 30
+            size_hint_y: None
+            height: 50
+        ScrollView:
+            pos: 0, 0
+            scroll_y: 0
+            scroll_type: ['bars', 'content']
+            BoxLayout:
+                orientation: 'vertical'
+                size_hint_y: None
+                height: 1000
+                ArticleInfoBlockSingleLine:
+                    id: article_title
+                    title_text: 'Title'
+                # ArticleInfoBlockMultiLine:
+                #     id: article_authors
+                # ArticleInfoBlockSingleLine:
+                #     id: article_journal
+                # ArticleInfoBlockSingleLine:
+                #     id: article_year
+                # ArticleInfoBlockMultiLine:
+                #     id: article_keywords
+                # ArticleInfoBlockMultiLine:
+                #     id: article_taggroups
+                # ArticleInfoBlockMultiLine:
+                #     id: article_comment
+        BoxLayout:
+            size_hint_y: None
+            height: 50
+            width: 120
+            Button:
+                # back ground image
+                text: 'Save'
+                #rgb(173,255,47)
+                background_color: 0.678, 0.847, 0.902, 1
+                # on_release: root.save_article()
+            Button:
+                text: 'Cancel'
+                #rgb(173,255,47)
+                background_color: 0.678, 0.847, 0.902, 1
+                # on_release: root.cancel_article()
+                
+<LoadProgressBar>:
+    BoxLayout:
+        size: root.size
+        pos: root.pos
+        orientation: "vertical"
+        ProgressBar:
+            id: progress_bar
+            max: 100
+            value: 0
+        Label:
+            id: progress_label
+            text: '0%'
+        Button:
+            text: "Cancel"
+            on_release: root.cancel()
+            
+<PopUpMessage>:
+    size_hint: None, None
+    size: 400, 400
+    title: 'Message'
+    auto_dismiss: False
+    BoxLayout:
+        orientation: 'vertical'
+        ScrollView:
+            pos: 0, 0
+            scroll_y: 0
+            scroll_type: ['bars', 'content']
+            TextInput:
+                multiline: True
+                text: root.message
+                readonly: True
+        GridLayout:
+            cols: 2
+            rows: 1
+            size_hint_y: None
+            height: 30
+            Button:
+                text: 'OK'
+                on_release: root.dismiss()
+            # copy message to clipboard
+            Button:
+                text: 'Copy'
+                on_release: root.copy_message()
+
+<UpdateFolderPath>:
+    size_hint: None, None
+    size: 400, 400
+    title: 'Update Folder Path'
+    auto_dismiss: False
+    folder_paths: folder_paths
+    BoxLayout:
+        orientation: 'vertical'
+        ScrollView:
+            scroll_y: 0
+            scroll_type: ['bars', 'content']
+            TextInput:
+                id: folder_paths
+                multiline: True
+                readonly: True
+        GridLayout:
+            cols: 3
+            rows: 1
+            size_hint_y: None
+            height: 30
+            Button:
+                text: 'Add'
+                on_release: root.selectfolder()
+                size_hint_x: 0.3
+            Button:
+                text: 'Update'
+                on_release: root.updatefolderpaths()
+                size_hint_x: 0.3
+            Button:
+                text: 'Cancel'
+                on_release: root.dismiss()
+                size_hint_x: 0.3
+
+<LoadFolderDialog>:
+    BoxLayout:
+        size: root.size
+        pos: root.pos
+        orientation: "vertical"
+        FileChooserListView:
+            id: filechooser
+            path: root.startPath
+        BoxLayout:
+            size_hint_y: None
+            height: 30
+            Button:
+                text: "Cancel"
+                on_release: root.cancel()
+            Button:
+                text: "Load"
+                on_release: root.load(filechooser.path, filechooser.selection)          
+<SciLibraScreenManager>:
+    MainScreen:
+        id: main_screen
+        name: 'main'
+    EditScreen:
+        id: Edit_screen
+        name: 'Edit'
