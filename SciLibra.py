@@ -96,6 +96,9 @@ Click2ReturnToolTip = True
 # search criteria
 searchCriteria = {}
 
+# Current Library View Current Page
+currentLibraryViewPage = 1
+currentClusteringCategory="title"
 ########## Classes ############
 class MenuBar(BoxLayout):
     article_groups = ObjectProperty(None)
@@ -592,8 +595,15 @@ class LibraryListView(Widget):
         return ArticlesClusterList
             
     
+    
     def createLibrayViewList(LibraryView, libcon, clusteringCategory):
         global currentLibraryView
+        global currentLibraryViewPage
+        global currentClusteringCategory
+
+        # reset the currentLibraryViewPage
+        currentLibraryViewPage = 1
+        
         # get the articles IDs for this category
         ArticlesCluster = LibraryListView.getArticleCluster(libcon, clusteringCategory)
         # if the cluster is empty then return
@@ -601,6 +611,10 @@ class LibraryListView(Widget):
             return LibraryView # return the tree view without any changes
         # change the currentLibraryView
         currentLibraryView = ArticlesCluster
+        currentClusteringCategory = clusteringCategory
+
+        # take only the first 50 clusters
+        ArticlesCluster = ArticlesCluster[(currentLibraryViewPage-1)*100:currentLibraryViewPage*100]
         
         # if LibraryView is not empty then clear it
         if len(LibraryView.children) > 0:
@@ -618,6 +632,8 @@ class LibraryListView(Widget):
             clusterGroup.articlegroupname = category_name
             clusterGroup.parentgroup = LibraryView
             LibraryView.add_widget(clusterGroup)
+
+
 
     def createLibrayViewListForList(LibraryView, ArticlesCluster):
         global currentLibraryView
@@ -643,7 +659,109 @@ class LibraryListView(Widget):
             clusterGroup.parentgroup = LibraryView
             LibraryView.add_widget(clusterGroup)
 
+    def nextPage(self):
+        global currentLibraryViewPage
+        global currentLibraryView
+        global currentClusteringCategory
+        currentView=self.ids.list_tool
 
+        # if currentLibraryView is empty then return
+        if currentView == None:
+            return
+        
+        # add one to the currentLibraryViewPage
+        if currentLibraryViewPage*100 >= len(currentLibraryView):
+            popup = PopUpMessage(title="No More Articles", message="No more articles")
+            # open the popup
+            popup.open()
+            return
+        currentLibraryViewPage += 1
+
+        # clear the currentLibraryView
+        if len(currentView.children) > 0:
+            for node in [i for i in  currentView.children]:
+                    currentView.remove_widget(node)
+      
+        #next set of clusters
+        ArticlesCluster = currentLibraryView[(currentLibraryViewPage-1)*100:currentLibraryViewPage*100]
+        # add new nodes to the tree view
+        for cluster in ArticlesCluster:
+            category_name = cluster["name"]
+            category_narticles = cluster["narticles"]
+            # Add ArticleGroup
+            clusterGroup = ArticleGroup(text=str(category_name) + " (" + str(category_narticles) + ")",
+                                        # parble
+                                        background_color = [0, 0.5, 0, 1])
+            clusterGroup.clusteringcategory = currentClusteringCategory
+            clusterGroup.articlegroupname = category_name
+            clusterGroup.parentgroup = currentView
+            currentView.add_widget(clusterGroup)
+        pass
+    
+    def previousPage(self):
+        global currentLibraryViewPage
+        global currentLibraryView
+        global currentClusteringCategory
+
+        currentView = self.ids.list_tool
+
+        # if currentLibraryView is empty then return
+        if currentView == None:
+            return
+        
+        # remove one from the currentLibraryViewPage
+        if currentLibraryViewPage == 1:
+            popup = PopUpMessage(title="No More Articles", message="No more articles")
+            # open the popup
+            popup.open()
+            return
+        
+        currentLibraryViewPage -= 1
+
+        # clear the currentLibraryView
+        if len(currentView.children) > 0:
+            for node in [i for i in  currentView.children]:
+                    currentView.remove_widget(node)
+      
+        #next set of clusters
+        ArticlesCluster = currentLibraryView[(currentLibraryViewPage-1)*100:currentLibraryViewPage*100]
+        # add new nodes to the tree view
+        for cluster in ArticlesCluster:
+            category_name = cluster["name"]
+            category_narticles = cluster["narticles"]
+            # Add ArticleGroup
+            clusterGroup = ArticleGroup(text=str(category_name) + " (" + str(category_narticles) + ")",
+                                        # parble
+                                        background_color = [0, 0.5, 0, 1])
+            clusterGroup.clusteringcategory = currentClusteringCategory
+            clusterGroup.articlegroupname = category_name
+            clusterGroup.parentgroup = currentView
+            currentView.add_widget(clusterGroup)
+        pass
+
+class YesNoDialog(Popup):
+    message = StringProperty('')
+    yesFunction = ObjectProperty(None)
+    noFunction = ObjectProperty(None)
+    def __init__(self, message=None, yesFunction=None, noFunction=None, **kwargs):
+        super().__init__(**kwargs)
+        self.message = message
+        if yesFunction != None:
+            self.yesFunction = yesFunction
+        if noFunction != None:
+            self.noFunction = noFunction
+    def yes(self):
+        if self.yesFunction != None:
+            self.yesFunction()
+            self.dismiss()
+        else:
+            self.dismiss()
+    def no(self):
+        if self.noFunction != None:
+            self.noFunction()
+            self.dismiss()
+        else:
+            self.dismiss()
 
 class ArticleGroup(Button):
     clusteringcategory = StringProperty('')
@@ -666,8 +784,12 @@ class ArticleGroup(Button):
             self.text = newtext
             # add more height according to the number of lines
             self.height += 20 * (len(self.text) // 50)
+
+
+
     def createArticleGroupView(groupname, libraryView, libcon, clusteringCategory):
         global SciLibraDatabaseName
+        
         # get the articles IDs for this category
         libcon = librarydatabase.create_connection(SciLibraDatabaseName)
         ArticlesCluster = librarydatabase.getAllArticleIDsfromSubTable(libcon, clusteringCategory)
@@ -709,6 +831,7 @@ class ArticleGroup(Button):
     def on_press(self):
         global currentLibraryViewPressed
         global currentLibraryView
+        global currentLibraryViewPage
 
         # if the it was pressed before then return the LibraryView to the original state
         if not currentLibraryViewPressed:
@@ -720,15 +843,17 @@ class ArticleGroup(Button):
             for node in [i for i in  self.parentgroup.children]:
                 self.parentgroup.remove_widget(node)
             # add the currentLibraryView to the LibraryView
-            for category_index in range(len(currentLibraryView)):
-                category = currentLibraryView[category_index]["name"]
-                narticles = currentLibraryView[category_index]["narticles"]
-                # create 
-                clusterGroup = ArticleGroup(text=str(category) + " (" + str(narticles) + ")",
+            # according to the currentLibraryViewPage
+            cluster = currentLibraryView[(currentLibraryViewPage-1)*100:currentLibraryViewPage*100]
+            for category in cluster:
+                category_name = category["name"]
+                category_narticles = category["narticles"]
+                # Add ArticleGroup
+                clusterGroup = ArticleGroup(text=str(category_name) + " (" + str(category_narticles) + ")",
                                             # parble
                                             background_color = [0, 0.5, 0, 1])
                 clusterGroup.clusteringcategory = self.clusteringcategory
-                clusterGroup.articlegroupname = category
+                clusterGroup.articlegroupname = category_name
                 clusterGroup.parentgroup = self.parentgroup
                 self.parentgroup.add_widget(clusterGroup)
             currentLibraryViewPressed = False
@@ -736,6 +861,9 @@ class ArticleGroup(Button):
         if Click2ReturnToolTip:
             LibraryTooltip().createTooltip("To return to the previous view click again")
         pass
+
+    
+
 
 class LibraryTooltip(Popup):
     tooltip_text = StringProperty('') 

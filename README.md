@@ -1,4 +1,7 @@
-# SciLibra
+
+![SciLibra icon](icon.png)
+# SciLibra 
+
 
 ## Description
 SciLibra is a free and open-source software for managing scientific articles. It provides a user interface for organizing and viewing scientific articles, including features for importing articles from BibTeX files, clustering articles by different categories, and viewing article details.

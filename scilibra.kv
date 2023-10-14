@@ -75,6 +75,35 @@
             ActionButton:
                 text: ''
                 size_hint_x: 0.5
+<YesNoDialog>:
+    size_hint: None, None
+    size: 400, 200
+    title: 'Message'
+    auto_dismiss: False
+    BoxLayout:
+        orientation: 'vertical'
+        ScrollView:
+            pos: 0, 0
+            scroll_y: 0
+            scroll_type: ['bars', 'content']
+            TextInput:
+                multiline: True
+                text: root.message
+                readonly: True
+                # grey
+                background_color: 0.8, 0.8, 0.8, 1
+        GridLayout:
+            cols: 2
+            rows: 1
+            size_hint_y: None
+            height: 30
+            Button:
+                text: 'Yes'
+                on_release: root.yes()
+            # copy message to clipboard
+            Button:
+                text: 'No'
+                on_release: root.no()
 <SearchScreen>:
     name: 'search'
     size: 200, 200
@@ -255,7 +284,31 @@
             height: self.minimum_height
             id: list_tool
             padding: 1
-            spacing: 5             
+            spacing: 5
+    GridLayout:
+        cols: 3
+        rows: 1
+        width: 400
+        # fill the space
+        height: 50
+        Button:
+            text: 'Search'
+            # back ground image
+            background_color: 0.678, 0.847, 0.902, 1
+            # on_release: root.parent.parent.show_load()
+            size_hint_x: 0.3
+        Button:
+            text: 'next'
+            # back ground image
+            background_color: 0.678, 0.847, 0.902, 1
+            on_release: root.nextPage()
+            size_hint_x: 0.3
+        Button:
+            text: 'previous'
+            # redish background
+            background_color: 0.678, 0.847, 0.902, 1
+            on_release: root.previousPage()
+            size_hint_x: 0.3
 
 
 
