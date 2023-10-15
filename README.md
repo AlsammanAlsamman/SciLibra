@@ -1,5 +1,5 @@
 
-![SciLibra icon](icon.png)
+![SciLibra icon](SciLibra_icon.png)
 # SciLibra 
 
 

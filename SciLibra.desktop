@@ -1,7 +1,7 @@
 [Desktop Entry]
 Encoding=UTF-8
 Version=1.0
-Icon=/home/samman/Documents/MyPython/MyProjects/SciLibra/icon.png
+Icon=/home/samman/Documents/MyPython/MyProjects/SciLibra/SciLibra_icon.png
 Name=SciLibra
 Exec=python3 /home/samman/Documents/MyPython/MyProjects/SciLibra/SciLibra.py
 Terminal=false
