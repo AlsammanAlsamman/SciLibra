@@ -132,7 +132,7 @@
                 background_color: 0.8, 0.8, 0.8, 1
             Button:
                 text: 'Add Splitter'
-                size_hint_y: 10
+                size_hint_y: 30
                 on_release: search_criteria_text.text += ' ||| '
         BoxLayout:
             cols: 1
@@ -303,7 +303,7 @@
             text: 'Search'
             # back ground image
             background_color: 0.678, 0.847, 0.902, 1
-            # on_release: root.parent.parent.show_load()
+            # on_release: root.parent.manager.main_screen.ids.menu_bar.show_search()
             size_hint_x: 0.3
         Button:
             text: 'next'

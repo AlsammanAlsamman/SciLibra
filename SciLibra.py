@@ -247,6 +247,10 @@ class PopUpMessage(Popup):
         self.message = message
         if closeFunction != None:
             self.closeFunction = closeFunction
+        # make the size of the popup depend on the size of the message
+        # self.size_hint = (None, None)
+        # self.size = ( 500,len(self.message)/20*2+200)
+        
     def copy_message(self):
         # copy the message to clipboard
         Clipboard.copy(self.message)
@@ -351,6 +355,7 @@ class CategoryiesDropDown(DropDown):
         # add article clusters
         cluster_buttons = []
         for cluster in clusteringCategories:
+            
             btn = Button(text=cluster, size_hint_y=None, height=44, background_color = (1,1,1,1), color=(1,0,0,1))
             # if the group is selected then change the background color to red
             if cluster == clusteringCategory:

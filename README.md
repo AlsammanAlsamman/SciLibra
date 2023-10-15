@@ -6,6 +6,31 @@
 ## Description
 SciLibra is a free and open-source software for managing scientific articles. It provides a user interface for organizing and viewing scientific articles, including features for importing articles from BibTeX files, clustering articles by different categories, and viewing article details.
 
+## How to use SciLibra
+1. Download you articles from your favorite search engine as a BibTeX and PDF files.
+2. Import the BibTeX file into SciLibra.
+3. Use the update path in the Action menu to update the PDF path for your article.
+4. The bibtex file can contain several articles, and the PDF files can be in different folders.
+6. The PDF file name should be the same as the BibTeX key.
+
+## Example of BibTeX file
+
+```
+@article{alsamman2023alignstatplot,
+  title={AlignStatPlot: An R package and online tool for robust sequence alignment statistics and innovative visualization of big data},
+  author={Alsamman, Alsamman M and El Allali, Achraf and Mokhtar, Morad M and Al-Sham’aa, Khaled and Nassar, Ahmed E and Mousa, Khaled H and Kehel, Zakaria},
+  journal={PloS one},
+  volume={18},
+  number={9},
+  pages={e0291204},
+  year={2023},
+  publisher={Public Library of Science San Francisco, CA USA},
+  taggroups = {Agricultural drainage,Artificial intelligence,Deep learning,Drainage water,Groundwater,Machine learning,Water quality},
+}
+```
+
+The PDF file name should be the same as the BibTeX key, in this case, the PDF file name should be "alsamman2023alignstatplot.pdf"
+
 ### Key Features
 - **Import Articles**: Effortlessly import scientific articles from BibTeX files, simplifying the process of building and maintaining your library.
 
