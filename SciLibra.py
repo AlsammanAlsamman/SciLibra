@@ -112,16 +112,7 @@ class MenuBar(BoxLayout):
         pass
     
     def show_about(self):
-        # using MyPopup class
-        about = PopUpMessage(title="About SciLibra", message='''SciLibra is a free and open source software for managing scientific articles.
-Created by: Alsamman M. Alsamman
-Emails: smahmoud [at] ageri.sci.eg
-        A.Alsamman [at] cgiar.org
-        SammanMohammed [at] gmail.com
-                        
-License: MIT License - https://opensource.org/licenses/MIT
-Disclaimer: The script comes with no warranty, use at your own risk
-This script is not intended for commercial use''')
+        about = AboutSciLibra()
         about.open()
     
         pass
@@ -1027,7 +1018,23 @@ class FilterDatabase(Popup):
         # open the popup
         popup.open()
 
-        
+class AboutSciLibra(Popup):
+    about_text = StringProperty('')
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.about_text = """SciLibra is a free and open source software for managing scientific articles.
+Created by: Alsamman M. Alsamman
+Emails: smahmoud [at] ageri.sci.eg
+A.Alsamman [at] cgiar.org
+SammanMohammed [at] gmail.com                        
+License: MIT License - https://opensource.org/licenses/MIT
+Disclaimer: The script comes with no warranty, use at your own risk
+This script is not intended for commercial use"""
+
+    def copy_message(self):
+        Clipboard.copy(self.about_text)
+        self.dismiss()
+
 class EditScreen(Screen):
     article_info = ObjectProperty(None)
     def __init__(self, **kwargs):

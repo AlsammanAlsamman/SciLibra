@@ -16,11 +16,15 @@
         ActionView:
             use_separator: True
             ActionPrevious:
+                font_size: 130
+                # bold
+                font_name: 'Comic Sans MS'
                 title: 'SciLibra'
                 # color red
                 background_color: 1, 0, 0, 1
                 with_previous: False
                 app_icon: 'icon_main.png'
+                
             # ActionButton:
             #     text: 'help'
             #     # open small dialog with help
@@ -77,6 +81,40 @@
             ActionButton:
                 text: ''
                 size_hint_x: 0.5
+
+<AboutSciLibra>:
+    size_hint: None, None
+    size: 500, 500
+    title: 'About SciLibra'
+    auto_dismiss: False
+    GridLayout:
+        cols: 1
+        rows: 2
+        GridLayout:
+            cols: 1
+            rows: 2
+            TextInput:
+                multiline: True
+                text: root.about_text
+                readonly: True
+                # grey
+                background_color: 0.8, 0.8, 0.8, 1
+            Image:
+                # icon
+                pos: 0, 0
+                source: 'icon_main.png'
+        GridLayout:
+            cols: 2
+            rows: 1
+            size_hint_y: None
+            height: 30
+            Button:
+                text: 'OK'
+                on_release: root.dismiss()
+            # copy message to clipboard
+            Button:
+                text: 'Copy'
+                on_release: root.copy_message()
 <YesNoDialog>:
     size_hint: None, None
     size: 400, 200
