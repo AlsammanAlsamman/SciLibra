@@ -38,7 +38,10 @@ from kivy.uix.actionbar import ActionButton
 from time import sleep
 from kivy.uix.checkbox import CheckBox
 from kivy.clock import Clock
-        
+from kivy.config import Config
+
+Config.set('kivy','window_icon','icon.png')
+
 
 ################# Local Imports #####################
 import librarydatabase
@@ -1103,6 +1106,9 @@ class SciLibra(App):
     def build(self):
         # create a database
         # create_database()
+        self.icon = 'icon.png'
+        # change icon
+
         return SciLibraScreenManager()
 
 if __name__ == '__main__':

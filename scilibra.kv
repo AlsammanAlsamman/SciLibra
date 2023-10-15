@@ -325,9 +325,8 @@
             id: list_tool
             padding: 1
             spacing: 5
-    GridLayout:
-        cols: 3
-        rows: 1
+    BoxLayout:
+        size_hint_y: None
         width: 400
         # fill the space
         height: 50
@@ -572,7 +571,7 @@
                 on_release: root.cancel()
             Button:
                 text: "Load"
-                on_release: root.load(filechooser.path, filechooser.selection)          
+                on_release: root.load(filechooser.path, filechooser.selection)
 <SciLibraScreenManager>:
     MainScreen:
         id: main_screen
