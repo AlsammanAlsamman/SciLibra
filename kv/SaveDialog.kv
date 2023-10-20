@@ -1,0 +1,38 @@
+<SaveDialog>:
+    # size_hint: None, None // When removed it makes the dialog box full screen
+    size: 400, 200
+    title: 'Save file'
+    auto_dismiss: False
+    file_name: file_name
+    filechooser: filechooser
+    BoxLayout:
+        orientation: "vertical"
+        # fill the space
+        size: root.size
+        pos: root.pos
+        # new file name
+        TextInput:
+            id: file_name
+            text: 'SciLibra.bib'
+            multiline: False
+            height: 10
+            # take only 10% of the space
+            size_hint_y: 0.1
+            #clear the text box when clicked once
+            on_focus: if self.focus and self.text == 'SciLibra.bib': self.text = ''
+            # light grey
+            background_color: 0.8, 0.8, 0.8, 1
+        FileChooserListView:
+            id: filechooser
+            filters: ['*.bib']
+        GridLayout:
+            cols: 2
+            rows: 1
+            size_hint_y: None
+            height: 30
+            Button:
+                text: "Cancel"
+                on_release: root.cancel()
+            Button:
+                text: "Save"
+                on_release: root.save(filechooser.path, file_name.text)

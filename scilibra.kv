@@ -2,156 +2,17 @@
 #:import Factory kivy.factory.Factory
 
 ############# Menu Bar ################
-<MenuBar>:
-    height: self.minimum_height
-    orientation: 'vertical'
-    size_hint: 1, None
-    tree_view_drop: tree_view_drop
-    actions_drop: actions_drop.__self__
-    ActionBar:
-        size : root.width, 40
-        pos: 0, root.height - self.height
-        # lime background color
-        background_color: 0.678, 1, 0.184, 1
-        ActionView:
-            use_separator: True
-            ActionPrevious:
-                font_size: 130
-                # bold
-                font_name: 'Comic Sans MS'
-                title: 'SciLibra'
-                # color red
-                background_color: 1, 0, 0, 1
-                with_previous: False
-                app_icon: 'icon_main.png'
-                
-            # ActionButton:
-            #     text: 'help'
-            #     # open small dialog with help
-            #     on_release: root.show_help()
-            ActionButton:
-                text: 'Quit'
-                on_release: app.stop()
-            ActionButton:
-                text: 'About'
-                # create a dropdown menu
-                on_press: root.show_about()
-            ActionButton:
-                text: 'Tree view'
-                on_release: tree_view_drop.open(self)
-                DropDown:
-                    id: tree_view_drop
-                    size_hint: None, None
-            ActionButton:
-                text: 'Load'
-                on_release: root.show_load()
-            ActionButton:
-                text: 'Actions'
-                on_release: actions_drop.open(self)
-                DropDown:
-                    id: actions_drop
-                    auto_width: False
-                    width: 200
-                    Button:
-                        text: 'Update Paths'
-                        size_hint: None, None
-                        height: 44
-                        width: 200
-                        on_release: root.updatefolderpath()
-                    Button:
-                        text: 'Filter Database'
-                        size_hint: None, None
-                        height: 44
-                        width: 200
-                        on_release: root.filter_database()
-                    Button:
-                        text: 'Save Database as BibTex'
-                        size_hint: None, None
-                        height: 44
-                        width: 200
-                        on_release: root.save_database_as_bibtex()
-                    Button:
-                        # search for articles
-                        text: 'Search'
-                        size_hint: None, None
-                        height: 44
-                        width: 200
-                        on_release: root.search_article()
-            # empty action item to fill the space
-            ActionButton:
-                text: ''
-                size_hint_x: 0.5
-<SaveDialog>:
-    # size_hint: None, None // When removed it makes the dialog box full screen
-    size: 400, 200
-    title: 'Save file'
-    auto_dismiss: False
-    file_name: file_name
-    filechooser: filechooser
-    BoxLayout:
-        orientation: "vertical"
-        # fill the space
-        size: root.size
-        pos: root.pos
-        # new file name
-        TextInput:
-            id: file_name
-            text: 'SciLibra.bib'
-            multiline: False
-            height: 10
-            # take only 10% of the space
-            size_hint_y: 0.1
-            #clear the text box when clicked once
-            on_focus: if self.focus and self.text == 'SciLibra.bib': self.text = ''
-            # light grey
-            background_color: 0.8, 0.8, 0.8, 1
-        FileChooserListView:
-            id: filechooser
-            filters: ['*.bib']
-        GridLayout:
-            cols: 2
-            rows: 1
-            size_hint_y: None
-            height: 30
-            Button:
-                text: "Cancel"
-                on_release: root.cancel()
-            Button:
-                text: "Save"
-                on_release: root.save(filechooser.path, file_name.text)
-<AboutSciLibra>:
-    size_hint: None, None
-    size: 500, 500
-    title: 'About SciLibra'
-    auto_dismiss: False
-    GridLayout:
-        cols: 1
-        rows: 2
-        GridLayout:
-            cols: 1
-            rows: 2
-            TextInput:
-                multiline: True
-                text: root.about_text
-                readonly: True
-                # grey
-                background_color: 0.8, 0.8, 0.8, 1
-            Image:
-                # icon
-                pos: 0, 0
-                source: 'icon_main.png'
-        GridLayout:
-            cols: 2
-            rows: 1
-            size_hint_y: None
-            height: 30
-            Button:
-                text: 'OK'
-                on_release: root.dismiss()
-            # copy message to clipboard
-            Button:
-                text: 'Copy'
-                on_release: root.copy_message()
+
+# load files from kv folder
+
+#:include kv/MenuBar.kv
+#:include kv/AboutSciLibra.kv
+#:include kv/SearchScreen.kv
+#:include kv/PopUpMessage.kv
+
+
+
+
 <YesNoDialog>:
     size_hint: None, None
     size: 400, 200
@@ -181,107 +42,7 @@
             Button:
                 text: 'No'
                 on_release: root.no()
-<SearchScreen>:
-    name: 'search'
-    size: 200, 200
-    # labels and text boxes for article information
-    GridLayout:
-        cols: 1
-        rows: 3
-        BoxLayout:
-            orientation: 'vertical'
-            size_hint_y: None
-            height: 100
-            Label:
-                text: 'You can split the search criteria by |||'
-                size_hint_y: 10
-            TextInput:
-                height: 50
-                size_hint_y: None
-                id: search_criteria_text
-                multiline: False
-                text: 'Please enter search criteria'
-                #clear the text box when clicked once
-                on_focus: if self.focus and self.text == 'Please enter search criteria': self.text = ''
-                # light grey
-                background_color: 0.8, 0.8, 0.8, 1
-            Button:
-                text: 'Add Splitter'
-                size_hint_y: 30
-                on_release: search_criteria_text.text += ' ||| '
-        BoxLayout:
-            cols: 1
-            rows: 4
-            pos: 0, 0
-            # start from the top
-            orientation: 'vertical'
-            padding: 1
-            # leave the last row empty
-            spacing: 0.1
-            SearchCriteria:
-                id: all
-                criteria: 'All/NotAll'
 
-            SearchCriteria:
-                id: title
-                criteria: 'title'
-            SearchCriteria:
-                id: authors
-                criteria: 'author'
-            SearchCriteria:
-                id: comments
-                criteria: 'comment'
-            SearchCriteria:
-                id: keywords
-                criteria: 'keywords'
-            SearchCriteria:
-                id: taggroups
-                criteria: 'taggroups'
-            SearchCriteria:
-                id: journal
-                criteria: 'journal'
-            SearchCriteria:
-                id: year
-                criteria: 'year'
-            SearchCriteria:
-                id: abstract
-                criteria: 'abstract'
-            # empty row
-            BoxLayout:
-                size_hint_y: None
-                height: 10
-        BoxLayout:
-            size_hint_y: None
-            height: 50
-            width: 120
-            # fill the space
-            Button:
-                # back ground image
-                text: 'Search'
-                #rgb(173,255,47)
-                background_color: 0.678, 0.847, 0.902, 1
-                on_release: root.search_article()
-            Button:
-                text: 'Cancel'
-                #rgb(173,255,47)
-                background_color: 0.678, 0.847, 0.902, 1
-                on_release: root.manager.current = 'main'              
-
-
-<SearchCriteria>:
-    BoxLayout:
-        orientation: 'vertical'
-        size_hint_y: None
-        height: 20
-        CheckBox:
-            id: criteria_checkbox
-            size_hint_x: 0.1
-            height: 20
-            on_active: root.check_criteria(root.value)
-            # if checked, add the criteria to the search list
-        Label:
-            text: root.criteria
-            size_hint_x: 0.9
 
 
 <MainScreen>:
@@ -468,9 +229,8 @@
         orientation: "vertical"
         FileChooserListView:
             id: filechooser
-            path: "/home/samman/Documents/MobileApplications/Learn/SciLibra"
+            # path: "/home/samman/Documents/MobileApplications/Learn/SciLibra"
             filters: ['*.bib', '*.txt']
-
         GridLayout:
             cols: 2
             rows: 1
@@ -625,35 +385,7 @@
             text: "Cancel"
             on_release: root.cancel()
             
-<PopUpMessage>:
-    size_hint: None, None
-    size: 400, 400
-    title: 'Message'
-    auto_dismiss: False
-    BoxLayout:
-        orientation: 'vertical'
-        ScrollView:
-            pos: 0, 0
-            scroll_y: 0
-            scroll_type: ['bars', 'content']
-            TextInput:
-                multiline: True
-                text: root.message
-                readonly: True
-                # grey
-                background_color: 0.8, 0.8, 0.8, 1
-        GridLayout:
-            cols: 2
-            rows: 1
-            size_hint_y: None
-            height: 30
-            Button:
-                text: 'OK'
-                on_release: root.close_popup()
-            # copy message to clipboard
-            Button:
-                text: 'Copy'
-                on_release: root.copy_message()
+
 
 <UpdateFolderPath>:
     size_hint: None, None

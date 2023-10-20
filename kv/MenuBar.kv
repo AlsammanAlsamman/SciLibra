@@ -1,0 +1,79 @@
+<MenuBar>:
+    height: self.minimum_height
+    orientation: 'vertical'
+    size_hint: 1, None
+    tree_view_drop: tree_view_drop
+    actions_drop: actions_drop.__self__
+    ActionBar:
+        size : root.width, 40
+        pos: 0, root.height - self.height
+        # lime background color
+        background_color: 0.678, 1, 0.184, 1
+        ActionView:
+            use_separator: True
+            ActionPrevious:
+                font_size: 130
+                # bold
+                font_name: 'Comic Sans MS'
+                title: 'SciLibra'
+                # color red
+                background_color: 1, 0, 0, 1
+                with_previous: False
+                app_icon: 'icon_main.png'
+                
+            # ActionButton:
+            #     text: 'help'
+            #     # open small dialog with help
+            #     on_release: root.show_help()
+            ActionButton:
+                text: 'Quit'
+                on_release: app.stop()
+            ActionButton:
+                text: 'About'
+                # create a dropdown menu
+                on_press: root.show_about()
+            ActionButton:
+                text: 'Tree view'
+                on_release: tree_view_drop.open(self)
+                DropDown:
+                    id: tree_view_drop
+                    size_hint: None, None
+            ActionButton:
+                text: 'Load'
+                on_release: root.show_load()
+            ActionButton:
+                text: 'Actions'
+                on_release: actions_drop.open(self)
+                DropDown:
+                    id: actions_drop
+                    auto_width: False
+                    width: 200
+                    Button:
+                        text: 'Update Paths'
+                        size_hint: None, None
+                        height: 44
+                        width: 200
+                        on_release: root.updatefolderpath()
+                    Button:
+                        text: 'Filter Database'
+                        size_hint: None, None
+                        height: 44
+                        width: 200
+                        on_release: root.filter_database()
+                    Button:
+                        text: 'Save Database as BibTex'
+                        size_hint: None, None
+                        height: 44
+                        width: 200
+                        on_release: root.save_database_as_bibtex()
+                    Button:
+                        # search for articles
+                        text: 'Search'
+                        size_hint: None, None
+                        height: 44
+                        width: 200
+                        on_release: root.search_article()
+            # empty action item to fill the space
+            ActionButton:
+                text: ''
+                size_hint_x: 0.5
