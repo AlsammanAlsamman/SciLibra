@@ -1110,28 +1110,6 @@ class EditScreen(Screen):
                     newArticleInfo[currentinfo] = ""
                 newArticleInfo[currentinfo] += line.strip()
         return newArticleInfo
-    def choose_from_available_values(self, table):
-        global SciLibraDatabaseName
-        global AvailableValues
-
-        # Clear AvailableValues
-        AvailableValues = {}
-
-        # open database
-        libcon = librarydatabase.create_connection(SciLibraDatabaseName)
-        # get the article info
-        avvalues = librarydatabase.getValuesforColumnInSubTable(libcon, table)
-        # to list and remove duplicates
-        avvalues = list(set(avvalues))
-        # pop up a  AddAvailableValues
-        popup = AddAvailableValues()
-        # add 100 empty AvailableValue
-        for value in avvalues:
-            # newButton = AvailableValue(value="New Tag", size_hint_y=None, height=40)
-            newValue = AvailableValue(value=value, size_hint_y=None, height=40)
-            popup.ids.available_values.add_widget(newValue)
-        # open the popup
-        popup.open()
         
     def buttonPress(self):
         # change screen
@@ -1206,12 +1184,7 @@ class AvailableValue(Button):
             self.background_color = (0,0,1,1)
             self.pressed=True
             AvailableValues[self.value] = 1
-   
-class AddAvailableValues(Popup):
-    
-    def addavailablevalues(self):
-        global AvailableValues
-        print(AvailableValues)
+
 class SciLibra(App):
     def build(self):
         # create a database
