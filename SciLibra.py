@@ -971,10 +971,8 @@ class GroupMember(Button):
             # open the popup
             popup.open()
             return
-        self.parent.parent.parent.parent.parent.parent.ids.article_info.text=ArticleText
+        self.parent.parent.parent.parent.parent.parent.parent.parent.ids.article_info.text=ArticleText
         SelectedArticle = self.articleKey
-
-
 
 class SciLibraScreenManager(ScreenManager):
 
