@@ -1,0 +1,30 @@
+<FilterDatabase>:
+    size_hint: None, None
+    size: 400, 200
+    title: 'Filter Database'
+    auto_dismiss: False
+    GridLayout:
+        cols: 1
+        rows: 3
+        BoxLayout:
+            # by article title
+            CheckBox:
+                id: check_box_article_title
+                size_hint_x: 0.1
+                # on_active: root.show_all()
+            Label:
+                text: 'By Article Title'
+                size_hint_x: 0.9
+        GridLayout:
+            cols: 3
+            rows: 1
+            size_hint_y: None
+            height: 30
+            Button:
+                text: 'Filter'
+                on_release: root.filterDatabase()
+                size_hint_x: 0.3
+            Button:
+                text: 'Cancel'
+                on_release: root.dismiss()
+                size_hint_x: 0.3
