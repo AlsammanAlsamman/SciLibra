@@ -9,40 +9,10 @@
 #:include kv/AboutSciLibra.kv
 #:include kv/SearchScreen.kv
 #:include kv/PopUpMessage.kv
-
-
-
-
-<YesNoDialog>:
-    size_hint: None, None
-    size: 400, 200
-    title: 'Message'
-    auto_dismiss: False
-    BoxLayout:
-        orientation: 'vertical'
-        ScrollView:
-            pos: 0, 0
-            scroll_y: 0
-            scroll_type: ['bars', 'content']
-            TextInput:
-                multiline: True
-                text: root.message
-                readonly: True
-                # grey
-                background_color: 0.8, 0.8, 0.8, 1
-        GridLayout:
-            cols: 2
-            rows: 1
-            size_hint_y: None
-            height: 30
-            Button:
-                text: 'Yes'
-                on_release: root.yes()
-            # copy message to clipboard
-            Button:
-                text: 'No'
-                on_release: root.no()
-
+#:include kv/LibraryListView.kv
+#:include kv/LibraryTooltip.kv
+#:include kv/UpdateFolderPath.kv
+#:include kv/YesNoDialog.kv
 
 
 <MainScreen>:
@@ -95,35 +65,7 @@
                         on_release: root.delete_article()
 
 
-<LibraryTooltip>:
-    size_hint: None, None
-    size: 400, 200
-    title: 'tooltip'
-    auto_dismiss: False
-    BoxLayout:
-        orientation: 'vertical'
-        ScrollView:
-            pos: 0, 0
-            scroll_y: 0
-            scroll_type: ['bars', 'content']
-            TextInput:
-                multiline: True
-                text: root.tooltip_text
-                # light grey
-                background_color: 0.8, 0.8, 0.8, 1
-                readonly: True
-        GridLayout:
-            cols: 2
-            rows: 1
-            size_hint_y: None
-            height: 30
-            Button:
-                text: 'OK'
-                on_release: root.dismiss()
-            # copy message to clipboard
-            Button:
-                text: 'Do not show again'
-                on_release: root.do_not_show_again()
+
 
 <FilterDatabase>:
     size_hint: None, None
@@ -133,15 +75,6 @@
     GridLayout:
         cols: 1
         rows: 3
-        # BoxLayout:
-        #    # check box
-        #     CheckBox:
-        #         id: check_box_article_id
-        #         size_hint_x: 0.1
-        #         # on_active: root.show_all()
-        #     Label:
-        #         text: 'By Article ID'
-        #         size_hint_x: 0.9 
         BoxLayout:
             # by article title
             CheckBox:
@@ -329,38 +262,7 @@
             
 
 
-<UpdateFolderPath>:
-    size_hint: None, None
-    size: 400, 400
-    title: 'Update Folder Path'
-    auto_dismiss: False
-    folder_paths: folder_paths
-    BoxLayout:
-        orientation: 'vertical'
-        ScrollView:
-            scroll_y: 0
-            scroll_type: ['bars', 'content']
-            TextInput:
-                id: folder_paths
-                multiline: True
-                readonly: True
-        GridLayout:
-            cols: 3
-            rows: 1
-            size_hint_y: None
-            height: 30
-            Button:
-                text: 'Add'
-                on_release: root.selectfolder()
-                size_hint_x: 0.3
-            Button:
-                text: 'Update'
-                on_release: root.updatefolderpaths()
-                size_hint_x: 0.3
-            Button:
-                text: 'Cancel'
-                on_release: root.dismiss()
-                size_hint_x: 0.3
+
 
 <LoadFolderDialog>:
     BoxLayout:

@@ -1,0 +1,29 @@
+<YesNoDialog>:
+    size_hint: None, None
+    size: 400, 200
+    title: 'Message'
+    auto_dismiss: False
+    BoxLayout:
+        orientation: 'vertical'
+        ScrollView:
+            pos: 0, 0
+            scroll_y: 0
+            scroll_type: ['bars', 'content']
+            TextInput:
+                multiline: True
+                text: root.message
+                readonly: True
+                # grey
+                background_color: 0.8, 0.8, 0.8, 1
+        GridLayout:
+            cols: 2
+            rows: 1
+            size_hint_y: None
+            height: 30
+            Button:
+                text: 'Yes'
+                on_release: root.yes()
+            # copy message to clipboard
+            Button:
+                text: 'No'
+                on_release: root.no()

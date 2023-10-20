@@ -1,0 +1,32 @@
+<UpdateFolderPath>:
+    size_hint: None, None
+    size: 400, 400
+    title: 'Update Folder Path'
+    auto_dismiss: False
+    folder_paths: folder_paths
+    BoxLayout:
+        orientation: 'vertical'
+        ScrollView:
+            scroll_y: 0
+            scroll_type: ['bars', 'content']
+            TextInput:
+                id: folder_paths
+                multiline: True
+                readonly: True
+        GridLayout:
+            cols: 3
+            rows: 1
+            size_hint_y: None
+            height: 30
+            Button:
+                text: 'Add'
+                on_release: root.selectfolder()
+                size_hint_x: 0.3
+            Button:
+                text: 'Update'
+                on_release: root.updatefolderpaths()
+                size_hint_x: 0.3
+            Button:
+                text: 'Cancel'
+                on_release: root.dismiss()
+                size_hint_x: 0.3
