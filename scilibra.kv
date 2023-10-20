@@ -13,78 +13,11 @@
 #:include kv/LibraryTooltip.kv
 #:include kv/UpdateFolderPath.kv
 #:include kv/YesNoDialog.kv
+#:include kv/LoadDialog.kv
 
 
-<MainScreen>:
-    name: 'main'
-    article_info: article_info
-    menu_bar: menu_bar
-    # tree_view: tree_view
-    # list_tool: list_tool
-    # scroll_tool: scroll_tool
-    GridLayout:
-        cols: 1
-        rows: 2
-        MenuBar:
-            height: 40
-            id: menu_bar
-            pos: 0, root.height - self.height
-        GridLayout:
-            cols: 2
-            rows: 1
-            LibraryListView:
-                id: library_view
-            # Article Info
-            GridLayout:
-                cols: 1
-                rows: 2
-                RstDocument:
-                    id: article_info
-                    text: 'Please select an article'
-                # Article Actions
-                BoxLayout:
-                    size_hint_y: None
-                    height: 50
-                    width: 120
-                    Button:
-                        # back ground image
-                        text: 'Open'
-                        #rgb(173,255,47)
-                        background_color: 0.678, 0.847, 0.902, 1
-                        on_release: root.parent.open_article()
-                    Button:
-                        text: 'Edit'
-                        #rgb(173,255,47)
-                        background_color: 0.678, 0.847, 0.902, 1
-                        # on_release: root.edit_article()
-                        on_release: root.edit_article()
-                    Button:
-                        text: 'Delete'
-                        #rgb(173,255,47)
-                        background_color: 0.678, 0.847, 0.902, 1
-                        on_release: root.delete_article()
 
-<LoadDialog>:
-    BoxLayout:
-        size: root.size
-        pos: root.pos
-        orientation: "vertical"
-        FileChooserListView:
-            id: filechooser
-            # path: "/home/samman/Documents/MobileApplications/Learn/SciLibra"
-            filters: ['*.bib', '*.txt']
-        GridLayout:
-            cols: 2
-            rows: 1
-            size_hint_y: None
-            height: 30
-            Button:
-                text: "Cancel"
-                on_release: root.cancel()
 
-            Button:
-                text: "Load"
-                on_release: root.load(filechooser.path, filechooser.selection)
 
 <EditScreen>:
     name: 'Edit'
@@ -227,23 +160,56 @@
             text: "Cancel"
             on_release: root.cancel()
             
-<LoadFolderDialog>:
-    BoxLayout:
-        size: root.size
-        pos: root.pos
-        orientation: "vertical"
-        FileChooserListView:
-            id: filechooser
-            path: root.startPath
-        BoxLayout:
-            size_hint_y: None
-            height: 30
-            Button:
-                text: "Cancel"
-                on_release: root.cancel()
-            Button:
-                text: "Load"
-                on_release: root.load(filechooser.path, filechooser.selection)
+
+<MainScreen>:
+    name: 'main'
+    article_info: article_info
+    menu_bar: menu_bar
+    # tree_view: tree_view
+    # list_tool: list_tool
+    # scroll_tool: scroll_tool
+    GridLayout:
+        cols: 1
+        rows: 2
+        MenuBar:
+            height: 40
+            id: menu_bar
+            pos: 0, root.height - self.height
+        GridLayout:
+            cols: 2
+            rows: 1
+            LibraryListView:
+                id: library_view
+            # Article Info
+            GridLayout:
+                cols: 1
+                rows: 2
+                RstDocument:
+                    id: article_info
+                    text: 'Please select an article'
+                # Article Actions
+                BoxLayout:
+                    size_hint_y: None
+                    height: 50
+                    width: 120
+                    Button:
+                        # back ground image
+                        text: 'Open'
+                        #rgb(173,255,47)
+                        background_color: 0.678, 0.847, 0.902, 1
+                        on_release: root.parent.open_article()
+                    Button:
+                        text: 'Edit'
+                        #rgb(173,255,47)
+                        background_color: 0.678, 0.847, 0.902, 1
+                        # on_release: root.edit_article()
+                        on_release: root.edit_article()
+                    Button:
+                        text: 'Delete'
+                        #rgb(173,255,47)
+                        background_color: 0.678, 0.847, 0.902, 1
+                        on_release: root.delete_article()
+
 <SciLibraScreenManager>:
     MainScreen:
         id: main_screen
