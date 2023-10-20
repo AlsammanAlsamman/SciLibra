@@ -1,26 +1,63 @@
 <LibraryListView>:
     list_tool: list_tool
-    canvas.before:
-        Color:
-            #dark green
-            rgba: 0.5, 0, 0.1, 1
-        Rectangle:
-            pos: self.pos
-            size: self.size
-    ScrollView:
-        pos: 0, 0
-        scroll_y: 1
-        scroll_type: ['bars', 'content']
-        do_scroll_x: False
-        do_scroll_y: True
-        # size_hint_y: self.height
-        # fill parent
-        # height: root.height
+    GridLayout:
+        cols: 1
+        rows: 2
+        # orientation: 'vertical'
+        # size_hint_y: None
         size: root.size
-        GridLayout:
-            cols: 1
+        BoxLayout:
+            canvas.before:
+                Color:
+                    #dark green
+                    rgba: 0.5, 0, 0.1, 1
+                Rectangle:
+                    pos: self.pos
+                    size: self.size
+            ScrollView:
+                pos: self.pos
+                scroll_y: 1
+                scroll_type: ['bars', 'content']
+                do_scroll_x: False
+                do_scroll_y: True
+                # size_hint_y: self.height
+                # fill parent
+                # height: root.height
+                size: root.size
+                GridLayout:
+                    cols: 1
+                    size_hint_y: None
+                    height: self.minimum_height
+                    id: list_tool
+                    padding: 1
+                    spacing: 1
+        # grey background
+        BoxLayout:
             size_hint_y: None
-            height: self.minimum_height
-            id: list_tool
-            padding: 1
-            spacing: 1
+            width: 400
+            # fill the space
+            height: 50
+            canvas.before:
+                Color:
+                    rgba: 0.8, 0.8, 0.8, 1
+                Rectangle:
+                    pos: self.pos
+                    size: self.size
+            Button:
+                text: 'Search'
+                # back ground image
+                background_color: 0.678, 0.847, 0.902, 1
+                # on_release: root.parent.manager.main_screen.ids.menu_bar.show_search()
+                # size_hint_x: 0.3
+            Button:
+                text: 'next'
+                # back ground image
+                background_color: 0.678, 0.847, 0.902, 1
+                on_release: root.nextPage()
+                # size_hint_x: 0.3
+            Button:
+                text: 'previous'
+                # redish background
+                background_color: 0.678, 0.847, 0.902, 1
+                on_release: root.previousPage()
+                # size_hint_x: 0.3

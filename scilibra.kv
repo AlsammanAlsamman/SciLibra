@@ -34,42 +34,8 @@
         GridLayout:
             cols: 2
             rows: 1
-            GridLayout:
-                cols: 1
-                rows: 2
-                # orientation: 'vertical'
-                LibraryListView:
-                    id: library_view
-                # grey background
-                BoxLayout:
-                    size_hint_y: None
-                    width: 400
-                    # fill the space
-                    height: 50
-                    canvas.before:
-                        Color:
-                            rgba: 0.8, 0.8, 0.8, 1
-                        Rectangle:
-                            pos: self.pos
-                            size: self.size
-                    Button:
-                        text: 'Search'
-                        # back ground image
-                        background_color: 0.678, 0.847, 0.902, 1
-                        # on_release: root.parent.manager.main_screen.ids.menu_bar.show_search()
-                        # size_hint_x: 0.3
-                    Button:
-                        text: 'next'
-                        # back ground image
-                        background_color: 0.678, 0.847, 0.902, 1
-                        on_release: root.nextPage()
-                        # size_hint_x: 0.3
-                    Button:
-                        text: 'previous'
-                        # redish background
-                        background_color: 0.678, 0.847, 0.902, 1
-                        on_release: root.previousPage()
-                        # size_hint_x: 0.3
+            LibraryListView:
+                id: library_view
             # Article Info
             GridLayout:
                 cols: 1
