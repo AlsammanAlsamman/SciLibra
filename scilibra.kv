@@ -69,7 +69,7 @@
                         size_hint: None, None
                         height: 44
                         width: 200
-                        # on_release: root.save_database_as_bibtex()
+                        on_release: root.save_database_as_bibtex()
                     Button:
                         # search for articles
                         text: 'Search'
@@ -81,7 +81,44 @@
             ActionButton:
                 text: ''
                 size_hint_x: 0.5
-
+<SaveDialog>:
+    # size_hint: None, None // When removed it makes the dialog box full screen
+    size: 400, 200
+    title: 'Save file'
+    auto_dismiss: False
+    file_name: file_name
+    filechooser: filechooser
+    BoxLayout:
+        orientation: "vertical"
+        # fill the space
+        size: root.size
+        pos: root.pos
+        # new file name
+        TextInput:
+            id: file_name
+            text: 'SciLibra.bib'
+            multiline: False
+            height: 10
+            # take only 10% of the space
+            size_hint_y: 0.1
+            #clear the text box when clicked once
+            on_focus: if self.focus and self.text == 'SciLibra.bib': self.text = ''
+            # light grey
+            background_color: 0.8, 0.8, 0.8, 1
+        FileChooserListView:
+            id: filechooser
+            filters: ['*.bib']
+        GridLayout:
+            cols: 2
+            rows: 1
+            size_hint_y: None
+            height: 30
+            Button:
+                text: "Cancel"
+                on_release: root.cancel()
+            Button:
+                text: "Save"
+                on_release: root.save(filechooser.path, file_name.text)
 <AboutSciLibra>:
     size_hint: None, None
     size: 500, 500
@@ -453,13 +490,30 @@
     article_info: article_info
     GridLayout:
         cols: 1
-        rows: 2
+        rows: 3
         TextInput:
             id: article_info
             multiline: True
             text: 'Please select an article'
             # light grey
             background_color: 0.8, 0.8, 0.8, 1
+        # box layout for available taggroups, and keywords
+        BoxLayout:
+            cols: 1
+            rows: 2
+            # take only 10% of the space
+            size_hint_y: 0.1
+            # two buttons for adding and removing taggroups, and keywords
+            Button:
+                text: 'Add Taggroup'
+                # back ground image
+                background_color: 0.678, 0.847, 0.902, 1
+                on_release: root.choose_from_available_values('taggroups')
+            Button:
+                text: 'Add Keyword'
+                # back ground image
+                background_color: 0.678, 0.847, 0.902, 1
+                on_release: root.choose_from_available_values('keywords')
         BoxLayout:
             size_hint_y: None
             height: 50
@@ -476,6 +530,85 @@
                 #rgb(173,255,47)
                 background_color: 0.678, 0.847, 0.902, 1
                 on_release: root.manager.current = 'main'
+
+<AvailableValue>:
+    text: root.value
+    # back color
+    background_color: 0.678, 0.847, 0.902, 1
+    
+<AddAvailableValues>:
+    size_hint: None, None
+    size: 400, 400
+    title: 'Add Available Values'
+    auto_dismiss: False
+    available_values: available_values
+    GridLayout:
+        cols:1
+        rows:2
+        GridLayout:
+            cols: 2
+            rows: 1
+            BoxLayout:
+                orientation: 'vertical'
+                ScrollView:
+                    pos: 0, 0
+                    scroll_y: 1
+                    scroll_type: ['bars', 'content']
+                    canvas.before:
+                        Color:
+                            rgba: 0.6, 0.2, 0.2, 1
+                        Rectangle:
+                            pos: self.pos
+                            size: self.size
+                    do_scroll_x: False
+                    do_scroll_y: True
+                    size: root.size
+                    GridLayout:
+                        cols: 1
+                        size_hint_y: self.minimum_height
+                        # height: self.minimum_height
+                        id: available_values
+                        padding: 1
+                        spacing: 1
+            BoxLayout:
+                orientation: 'vertical'
+                size_hint_y: None
+                height: 100
+                ScrollView:
+                    pos: 0, 0
+                    scroll_y: 1
+                    scroll_type: ['bars', 'content']
+                    canvas.before:
+                        Color:
+                            rgba: 0.6, 0.2, 0.2, 1
+                        Rectangle:
+                            pos: self.pos
+                            size: self.size
+                    do_scroll_x: False
+                    do_scroll_y: True
+                    size: root.size
+                    GridLayout:
+                        cols: 1
+                        size_hint_y: self.minimum_height
+                        # height: self.minimum_height
+                        # id: available_values
+                        padding: 1
+                        spacing: 1
+                        Button:
+                            text: 'Add'
+                            # back ground image
+                            background_color: 0.678, 0.847, 0.902, 1
+        BoxLayout:
+            size_hint_y: None
+            height: 30
+            Button:
+                text: 'Add'
+                on_release: root.addavailablevalues()
+                size_hint_x: 0.3
+            Button:
+                text: 'Cancel'
+                on_release: root.dismiss()
+                size_hint_x: 0.3
 <LoadProgressBar>:
     BoxLayout:
         size: root.size

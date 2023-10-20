@@ -212,7 +212,7 @@ def  insertArticleData2SubTable(libcon, articleData, articleKey, tableName):
     if tableName in ['author', 'taggroups', 'keywords']:
         for data in articleData:
             # insert into database table
-            c.execute('''INSERT INTO {} VALUES (?,?)'''.format(tableName), (articleKey, data))
+            c.execute('''INSERT INTO {} VALUES (?,?)'''.format(tableName), (articleKey, data.strip()))
         # Commit changes
         libcon.commit()
         return
@@ -261,6 +261,7 @@ def getAllArticlesfromMainTable(libcon):
     # convert to list of dictionaries
     data = [{dbcols[i]:item[i] for i in range(len(dbcols))} for item in data]
     return data
+
 def getAllArticlesfromSubTable(libcon, tableName):
     c = libcon.cursor()
     # insert into database table
@@ -290,7 +291,18 @@ def getArticleInfoByIDfromMainTable(libcon, articleID):
     data = {dbcols[i]:data[0][i] for i in range(len(dbcols))}
     return data
 
-
+# expected one result to be returned
+def getArticleInfoByIDfromSubTable(libcon, tableName, articleID):
+    c = libcon.cursor()
+    # insert into database table
+    c.execute('''SELECT * FROM {} WHERE ID=?'''.format(tableName), (articleID,))
+    data = c.fetchall()
+    if not data:
+        return None
+    # if more than one result is returned return error
+    if len(data) > 1:
+        return "Error: more than one result is returned"
+    return data[0][1]
 def searchArticleInfoFromLibraryMainTable(libcon, searchQuery, searchType='title'):
     # create cursor
     c = libcon.cursor()
@@ -392,6 +404,31 @@ def getArticleValuesforKeyInSubTable(libcon, tableName, key):
     if not data:
         return []
     data = data[0][0]
+    # Close connection
+    return data
+
+
+def getValuesforColumnInMainTable(libcon, colname):
+    # create cursor
+    c = libcon.cursor() 
+    # get article ID and column value
+    c.execute('''SELECT {} FROM articles'''.format(colname))
+    data = c.fetchall()
+    # Commit changes
+    libcon.commit()
+    # Close connection
+    return data
+
+def getValuesforColumnInSubTable(libcon, tableName):
+    # create cursor
+    c = libcon.cursor() 
+    # get article ID and column value
+    c.execute('''SELECT articleData FROM {}'''.format(tableName))
+    data = c.fetchall()
+    # Commit changes
+    libcon.commit()
+    # to list 
+    data = [item[0] for item in data]
     # Close connection
     return data
 

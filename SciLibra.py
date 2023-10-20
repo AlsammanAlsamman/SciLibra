@@ -46,6 +46,7 @@ Config.set('kivy','window_icon','icon.png')
 ################# Local Imports #####################
 import librarydatabase
 import articledata
+import re
 
 ################# Global Variables #####################
 # Main Table
@@ -63,16 +64,16 @@ articleInfoTable = {'ID': 'text',
                 'pages': 'text',
                 'volume': 'text',
                 'number': 'text',
-                'publisher': 'text',
-                'bibtext': 'text'}
+                
+                'publisher': 'text'}
 # Sub Tables
 dbSubTablesInfo = {'taggroups': 'text'
             , 'author': 'text'
             , 'title': 'text'
             , 'keywords': 'text'
             , 'year': 'text'
+            ,'comment': 'text'
             , 'journal': 'text'
-            , 'comment': 'text'
             , 'firstpageimages': 'blob'}
 
 # Clustering Categories
@@ -102,6 +103,9 @@ searchCriteria = {}
 # Current Library View Current Page
 currentLibraryViewPage = 1
 currentClusteringCategory="title"
+
+# Available Values
+AvailableValues = {}
 ########## Classes ############
 class MenuBar(BoxLayout):
     article_groups = ObjectProperty(None)
@@ -124,6 +128,7 @@ class MenuBar(BoxLayout):
         pass
     
     def dismiss_popup(self):
+        print("Hello")
         self._popup.dismiss()
     
     def load(self, path, filename):
@@ -172,25 +177,66 @@ class MenuBar(BoxLayout):
     def updatefolderpath(self):
         updateLoader = UpdateFolderPath()
         updateLoader.open()
+
     def filter_database(self):
         # open the filter database popup
         filterdatabase = FilterDatabase()
         filterdatabase.open()
+    
     def save_database_as_bibtex(self):
         # get all articles from the database
         global SciLibraDatabaseName
-        # open the database
-        libcon = librarydatabase.create_connection(SciLibraDatabaseName)
-        # get all articles
-        articles = librarydatabase.getAllArticlesfromMainTable(libcon)
-        # close connection
-        libcon.close()
-        # pdf path sub table
-        pdfpathSubTable = librarydatabase.getAllArticlesfromSubTable(dbSubTablesInfo, 'pdfpath')
+        # open file chooser
+        content = SaveDialog(cancel=self.dismiss_popup)
+        content.save = self.saveDatabase2Bib
+        self._popup = Popup(title="Save file", content=content,
+                            size_hint=(0.9, 0.9), auto_dismiss=False)
+        self._popup.open()
 
+        
     def search_article(self):
         self.parent.parent.manager.current = "search"
         pass
+    
+    def saveDatabase2Bib(self, path, filename):
+        global SciLibraDatabaseName
+        
+        # check validity of the file name
+        if filename == "":
+            popup = PopUpMessage(title="No File Name", message="Please enter a file name")
+            # open the popup
+            popup.open()
+            return
+        # check file name validity according to not containing any special characters
+        if re.search('[<>?|*:"/]', filename) != None:
+            popup = PopUpMessage(title="Invalid File Name", message="Please enter a valid file name")
+            # open the popup
+            popup.open()
+            return
+
+        # open the database
+        libcon = librarydatabase.create_connection(SciLibraDatabaseName)
+        # get all articles
+        # articles = librarydatabase.getAllArticlesfromMainTable(libcon)
+        # pdf path sub table
+        pdfpathSubTable = librarydatabase.getAllArticlesfromSubTable(libcon, 'comment')
+        print(pdfpathSubTable)
+        # comment
+        # abstrcat
+        # # close connection
+        # libcon.close()
+
+        # dismiss the popup
+        self.dismiss_popup()
+        pass
+
+
+class SaveDialog(FloatLayout):
+    save = ObjectProperty(None)
+    file_name = ObjectProperty(None)
+    cancel = ObjectProperty(None)
+    filechooser = ObjectProperty(None)
+    
 
 class SearchCriteria(BoxLayout):
     criteria = StringProperty('')
@@ -392,8 +438,8 @@ class MainScreen(Screen):
         libcon = librarydatabase.create_connection(SciLibraDatabaseName)
 
         ArticleDatabaseInfo = librarydatabase.getArticleInfoByIDfromMainTable(libcon, SelectedArticle)
-        # close connection
-        libcon.close()
+        # get 
+
         # check if the article is not found
         if ArticleDatabaseInfo == None:
             popup = PopUpMessage(title="Article Not Found", message="Article is not found")
@@ -408,6 +454,14 @@ class MainScreen(Screen):
                 # articletextinfo += "\n>>"+info + "<<\n" + str(ArticleDatabaseInfo[info]) + "\n"
                 articletextinfo.append(">>"+info + "<<")
                 articletextinfo.append(str(ArticleDatabaseInfo[info]))
+        # add comments
+        articletextinfo.append(">>comment<<")
+        comment = librarydatabase.getArticleInfoByIDfromSubTable(libcon, 'comment',SelectedArticle)
+        if comment != None:
+            articletextinfo.append(comment)        
+        # close connection
+        libcon.close()
+
         # change the text of the article info box
         self.parent.ids.Edit_screen.ids.article_info.text = "\n".join(articletextinfo)
         # change the currentArticleEditInfo
@@ -1056,7 +1110,29 @@ class EditScreen(Screen):
                     newArticleInfo[currentinfo] = ""
                 newArticleInfo[currentinfo] += line.strip()
         return newArticleInfo
-    
+    def choose_from_available_values(self, table):
+        global SciLibraDatabaseName
+        global AvailableValues
+
+        # Clear AvailableValues
+        AvailableValues = {}
+
+        # open database
+        libcon = librarydatabase.create_connection(SciLibraDatabaseName)
+        # get the article info
+        avvalues = librarydatabase.getValuesforColumnInSubTable(libcon, table)
+        # to list and remove duplicates
+        avvalues = list(set(avvalues))
+        # pop up a  AddAvailableValues
+        popup = AddAvailableValues()
+        # add 100 empty AvailableValue
+        for value in avvalues:
+            # newButton = AvailableValue(value="New Tag", size_hint_y=None, height=40)
+            newValue = AvailableValue(value=value, size_hint_y=None, height=40)
+            popup.ids.available_values.add_widget(newValue)
+        # open the popup
+        popup.open()
+        
     def buttonPress(self):
         # change screen
         self.manager.current = "main"
@@ -1072,6 +1148,9 @@ class EditScreen(Screen):
         # changes info
         changedInfo = []
         for info in newArticleInfo:
+            # if not in currentArticleEditInfo then add it
+            if info not in currentArticleEditInfo:
+                currentArticleEditInfo[info] = ""
             # is there any change
             if newArticleInfo[info] != currentArticleEditInfo[info]:
                 changedInfo.append(info)
@@ -1088,7 +1167,10 @@ class EditScreen(Screen):
         libcon = librarydatabase.create_connection(SciLibraDatabaseName)
         #update the main table
         for info in changedInfo:
-            librarydatabase.updateMainTableRow(libcon, info, SelectedArticle, newArticleInfo[info], forceUpdate=True)
+            # if the info is in the main table then update it
+            if info in articleInfoTable:
+                librarydatabase.updateMainTableRow(libcon, info, SelectedArticle, newArticleInfo[info], forceUpdate=True)
+
         # update the sub tables
         for tableName in dbSubTablesInfo:
             if tableName in changedInfo:
@@ -1102,6 +1184,34 @@ class EditScreen(Screen):
         popup.open()
         # change screen
         self.manager.current = "main"
+
+
+class AvailableValue(Button):
+    value = StringProperty('')
+    pressed=False
+    myParent = ObjectProperty(None)
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.background_color = (1,1,1,1)
+        self.size_hint_y = None
+        self.height = 40
+    def on_press(self):
+        global AvailableValues
+        if self.pressed:
+            self.background_color = (1,1,1,1)
+            self.pressed=False
+            # add to parent
+            
+        else:
+            self.background_color = (0,0,1,1)
+            self.pressed=True
+            AvailableValues[self.value] = 1
+   
+class AddAvailableValues(Popup):
+    
+    def addavailablevalues(self):
+        global AvailableValues
+        print(AvailableValues)
 class SciLibra(App):
     def build(self):
         # create a database
