@@ -1187,9 +1187,11 @@ class SciLibra(App):
     def build(self):
         # create a database
         # create_database()
-        self.icon = 'icon.png'
+        self.icon = 'SciLibra.png'
+        # change program icon 
+        # change startup icon
+        # self.on_icon='SciLibra_icon.png'
         # change icon
-
         return SciLibraScreenManager()
 
 if __name__ == '__main__':
