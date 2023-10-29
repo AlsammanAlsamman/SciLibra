@@ -103,6 +103,7 @@ searchCriteria = {}
 # Current Library View Current Page
 currentLibraryViewPage = 1
 currentClusteringCategory="title"
+orginalLibraryView = None # used to store the original library view
 
 # Available Values
 AvailableValues = {}
@@ -617,10 +618,15 @@ class SearchScreen(Screen):
                 report += "\t" + criteria + ": " + str(searchReport[searchQuery]["Criteria"][criteria]) + "\n"
         return report
 
+
+
 # Contains ArticleGroup
 class LibraryListView(Widget):
+    searchStatus = False
+
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
+        
     
     def getArticleCluster(libcon, clusteringCategory):
         global SciLibraDatabaseName
@@ -646,17 +652,13 @@ class LibraryListView(Widget):
         # change the currentLibraryView
         currentLibraryView = ArticlesCluster
         return ArticlesClusterList
-            
-    
     
     def createLibrayViewList(LibraryView, libcon, clusteringCategory):
         global currentLibraryView
         global currentLibraryViewPage
         global currentClusteringCategory
-
         # reset the currentLibraryViewPage
         currentLibraryViewPage = 1
-        
         # get the articles IDs for this category
         ArticlesCluster = LibraryListView.getArticleCluster(libcon, clusteringCategory)
         # if the cluster is empty then return
@@ -685,8 +687,6 @@ class LibraryListView(Widget):
             clusterGroup.articlegroupname = category_name
             clusterGroup.parentgroup = LibraryView
             LibraryView.add_widget(clusterGroup)
-
-
 
     def createLibrayViewListForList(LibraryView, ArticlesCluster):
         global currentLibraryView
@@ -792,29 +792,82 @@ class LibraryListView(Widget):
             currentView.add_widget(clusterGroup)
         pass
 
-class YesNoDialog(Popup):
-    message = StringProperty('')
-    yesFunction = ObjectProperty(None)
-    noFunction = ObjectProperty(None)
-    def __init__(self, message=None, yesFunction=None, noFunction=None, **kwargs):
-        super().__init__(**kwargs)
-        self.message = message
-        if yesFunction != None:
-            self.yesFunction = yesFunction
-        if noFunction != None:
-            self.noFunction = noFunction
-    def yes(self):
-        if self.yesFunction != None:
-            self.yesFunction()
-            self.dismiss()
-        else:
-            self.dismiss()
-    def no(self):
-        if self.noFunction != None:
-            self.noFunction()
-            self.dismiss()
-        else:
-            self.dismiss()
+    def search(self, text):
+
+        if self.searchStatus == True:
+            # sorry you can't search while searching
+            popup = PopUpMessage(title="Search in Progress", message="Sorry you can't search on a search result press X to clear the search")
+            # open the popup
+            popup.open()
+            return
+        
+        global orginalLibraryView
+        # search for the text in the library
+        global currentLibraryView
+        # print all the text of the library
+        newLibraryView = []
+        for cluster in currentLibraryView:
+            # check if the text/pattern is in the cluster name
+            clustername = cluster["name"]
+            if re.search(text, clustername, re.IGNORECASE) != None:
+                newLibraryView.append(cluster)
+        # save the orginalLibraryView to be used later
+        orginalLibraryView = currentLibraryView
+        # change the currentLibraryView
+        currentLibraryView = newLibraryView
+        # change the library view
+        # clear the currentLibraryView
+        currentView = self.ids.list_tool
+        # if the library view original is empty then save the original library view
+       
+        if len(currentView.children) > 0:
+            for node in [i for i in  currentView.children]:
+                    currentView.remove_widget(node)
+        # add new nodes to the tree view
+        for cluster in newLibraryView:
+            category_name = cluster["name"]
+            category_narticles = cluster["narticles"]
+            # Add ArticleGroup
+            clusterGroup = ArticleGroup(text=str(category_name) + " (" + str(category_narticles) + ")",
+                                        # parble
+                                        background_color = [0, 0.5, 0, 1])
+            clusterGroup.clusteringcategory = currentClusteringCategory
+            clusterGroup.articlegroupname = category_name
+            clusterGroup.parentgroup = currentView
+            currentView.add_widget(clusterGroup)
+        # change the search status
+        self.searchStatus = True
+        pass
+
+    def clearSearch(self):
+        global currentLibraryView
+        global orginalLibraryView
+        # clear the currentLibraryView
+        currentView = self.ids.list_tool
+        if len(currentView.children) > 0:
+            for node in [i for i in  currentView.children]:
+                    currentView.remove_widget(node)
+        # add new nodes to the tree view
+        for cluster in orginalLibraryView:
+            category_name = cluster["name"]
+            category_narticles = cluster["narticles"]
+            # Add ArticleGroup
+            clusterGroup = ArticleGroup(text=str(category_name) + " (" + str(category_narticles) + ")",
+                                        # parble
+                                        background_color = [0, 0.5, 0, 1])
+            clusterGroup.clusteringcategory = currentClusteringCategory
+            clusterGroup.articlegroupname = category_name
+            clusterGroup.parentgroup = currentView
+            currentView.add_widget(clusterGroup)
+        # change the currentLibraryView
+        currentLibraryView = orginalLibraryView
+        # clear the orginalLibraryView
+        orginalLibraryView = None
+        # change the search status
+        self.searchStatus = False
+        pass
+
+
 
 class ArticleGroup(Button):
     clusteringcategory = StringProperty('')
@@ -837,8 +890,6 @@ class ArticleGroup(Button):
             self.text = newtext
             # add more height according to the number of lines
             self.height += 20 * (len(self.text) // 50)
-
-
 
     def createArticleGroupView(groupname, libraryView, libcon, clusteringCategory):
         global SciLibraDatabaseName
@@ -916,6 +967,30 @@ class ArticleGroup(Button):
         pass
 
     
+
+# class YesNoDialog(Popup):
+#     message = StringProperty('')
+#     yesFunction = ObjectProperty(None)
+#     noFunction = ObjectProperty(None)
+#     def __init__(self, message=None, yesFunction=None, noFunction=None, **kwargs):
+#         super().__init__(**kwargs)
+#         self.message = message
+#         if yesFunction != None:
+#             self.yesFunction = yesFunction
+#         if noFunction != None:
+#             self.noFunction = noFunction
+#     def yes(self):
+#         if self.yesFunction != None:
+#             self.yesFunction()
+#             self.dismiss()
+#         else:
+#             self.dismiss()
+#     def no(self):
+#         if self.noFunction != None:
+#             self.noFunction()
+#             self.dismiss()
+#         else:
+#             self.dismiss()
 
 
 class LibraryTooltip(Popup):
@@ -999,11 +1074,6 @@ class SciLibraScreenManager(ScreenManager):
         # add buttons to the LibraryView
         
         menu_bar = self.ids.main_screen.ids.menu_bar
-                
-        # # # # # remove the database file if exists
-        # # # # if os.path.exists(SciLibraDatabaseName):
-        # # # #     os.remove(SciLibraDatabaseName)
-
         # # initialize the database for the first time !!
         librarydatabase.initializeLibrary(SciLibraDatabaseName, articleInfoTable, dbSubTablesInfo)
         # # Create a connection to the database

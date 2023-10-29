@@ -1,5 +1,6 @@
 <LibraryListView>:
     list_tool: list_tool
+    search_input: search_input
     GridLayout:
         cols: 1
         rows: 2
@@ -43,21 +44,39 @@
                 Rectangle:
                     pos: self.pos
                     size: self.size
-            Button:
-                text: 'Search'
-                # back ground image
+            TextInput:
+                hint_text: 'Search by pattern (press enter)'
+                multiline: False
+                id: search_input
+                # text: 'Search'
                 background_color: 0.678, 0.847, 0.902, 1
+                # on_release: root.search()
+                # on press enter
+                on_text_validate: root.search(search_input.text)
+                # size_hint_x: 0.3
+            Button:
+                text:"Go"
+                size_hint_x: 0.2
+                # light green background
+                background_color: 0.1, 0.3, 0.1, 1
+                on_release: root.search(search_input.text)
                 # on_release: root.parent.manager.main_screen.ids.menu_bar.show_search()
-                # size_hint_x: 0.3
             Button:
-                text: 'next'
+                text:"X"
+                size_hint_x: 0.2
+                # red background
+                background_color: 0.5, 0, 0.1, 1
+                on_release: root.clearSearch()
+            
+            Button:
+                text: '>>'
                 # back ground image
-                background_color: 0.678, 0.847, 0.902, 1
+                background_color: 0, 0.3, 0.3, 1
                 on_release: root.nextPage()
-                # size_hint_x: 0.3
+                size_hint_x: 0.2
             Button:
-                text: 'previous'
-                # redish background
-                background_color: 0.678, 0.847, 0.902, 1
+                text: '<<'
+                # red background
+                background_color: 0.5, 0, 0.1, 1
                 on_release: root.previousPage()
-                # size_hint_x: 0.3
+                size_hint_x: 0.2
