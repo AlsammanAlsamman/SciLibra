@@ -105,6 +105,9 @@ currentLibraryViewPage = 1
 currentClusteringCategory="title"
 orginalLibraryView = None # used to store the original library view
 
+# Seacrhing
+searchStatus = False
+
 # Available Values
 AvailableValues = {}
 ########## Classes ############
@@ -622,7 +625,7 @@ class SearchScreen(Screen):
 
 # Contains ArticleGroup
 class LibraryListView(Widget):
-    searchStatus = False
+    
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -687,7 +690,8 @@ class LibraryListView(Widget):
             clusterGroup.parentgroup = LibraryView
             LibraryView.add_widget(clusterGroup)
         # clear the search status
-        LibraryView.searchStatus = False
+        global searchStatus 
+        searchStatus = False
 
 
     def createLibrayViewListForList(LibraryView, ArticlesCluster):
@@ -714,7 +718,8 @@ class LibraryListView(Widget):
             clusterGroup.parentgroup = LibraryView
             LibraryView.add_widget(clusterGroup)
         # clear the search status
-        LibraryView.searchStatus = False
+        global searchStatus
+        searchStatus = False
         
     def nextPage(self):
         global currentLibraryViewPage
@@ -797,7 +802,8 @@ class LibraryListView(Widget):
         pass
 
     def search(self, text):
-        if self.searchStatus == True:
+        global searchStatus
+        if searchStatus == True:
             # sorry you can't search while searching
             popup = PopUpMessage(title="Search in Progress", message="Sorry you can't search on a search result press X to clear the search")
             # open the popup
@@ -838,7 +844,7 @@ class LibraryListView(Widget):
             clusterGroup.parentgroup = currentView
             currentView.add_widget(clusterGroup)
         # change the search status
-        self.searchStatus = True
+        searchStatus = True
         pass
 
     def clearSearch(self):
@@ -870,7 +876,8 @@ class LibraryListView(Widget):
         # clear the orginalLibraryView
         orginalLibraryView = None
         # change the search status
-        self.searchStatus = False
+        global searchStatus
+        searchStatus = False
         pass
 class ArticleGroup(Button):
     clusteringcategory = StringProperty('')
