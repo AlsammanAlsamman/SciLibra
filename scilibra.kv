@@ -16,7 +16,7 @@
 #:include kv/LoadDialog.kv
 #:include kv/LoadProgressBar.kv
 #:include kv/FilterDatabase.kv
-
+#:include kv/DualListWindow.kv
 
 <MainScreen>:
     name: 'main'
@@ -40,10 +40,39 @@
             # Article Info
             GridLayout:
                 cols: 1
-                rows: 2
+                rows: 3
                 RstDocument:
                     id: article_info
                     text: 'Please select an article'
+                # Article Group Editing
+                BoxLayout:
+                    size_hint_y: None
+                    height: 50
+                    width: 120
+                    canvas.before:
+                        Color:
+                            rgba: 0.8, 0.8, 0.8, 1
+                        Rectangle:
+                            pos: self.pos
+                            size: self.size
+                    Button:
+                        # back ground image
+                        text: 'Keyword'
+                        #rgb(173,255,47)
+                        background_color: 0.678, 0.847, 0.902, 1
+                        on_release: root.manage_info("keyword")
+                    Button:
+                        text: 'Taggroups'
+                        #rgb(173,255,47)
+                        background_color: 0.678, 0.847, 0.902, 1
+                        on_release: root.manage_info("taggroups")
+                    Button:
+                        text: 'Comment'
+                        #rgb(173,255,47)
+                        background_color: 0.678, 0.847, 0.902, 1
+                        # on_release: root.manage_info("comment")
+                
+                
                 # Article Actions
                 BoxLayout:
                     size_hint_y: None
@@ -103,6 +132,39 @@
                 background_color: 0.678, 0.847, 0.902, 1
                 on_release: root.manager.current = 'main'
 
+<EditInfoScreen>:
+    name: 'EditInfo'
+    # labels and text boxes for article information
+    # article_info: article_info
+    GridLayout:
+        cols: 1
+        rows: 2
+        # cols: 1
+        # rows: 2
+        # BoxLayout:
+        # size_hint_y: 0.9
+        id: dual_list
+        # fill the space
+            # size: root.size
+            # size_hint_x: 0.9
+        # BoxLayout:
+        #     size_hint_y: 0.1
+        #     orientation: 'horizontal'
+        #     height: 5
+        #     width: 120
+        #     # fill the space
+        #     Button:
+        #         # back ground image
+        #         text: 'Update'
+        #         #rgb(173,255,47)
+        #         background_color: 0.678, 0.847, 0.902, 1
+        #         on_release: root.update_article()
+        #     Button:
+        #         text: 'Cancel'
+        #         #rgb(173,255,47)
+        #         background_color: 0.678, 0.847, 0.902, 1
+        #         on_release: root.manager.current = 'main'
+        
 <SciLibraScreenManager>:
     MainScreen:
         id: main_screen
@@ -113,3 +175,6 @@
     SearchScreen:
         id: Search_screen
         name: 'search'
+    EditInfoScreen:
+        id: EditInfo_screen
+        name: 'EditInfo'
