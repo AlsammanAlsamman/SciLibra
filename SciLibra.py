@@ -504,29 +504,32 @@ class MainScreen(Screen):
 
     def manage_info(self,target):
         # change the color of the target
-        print(target)
-        # open Edit info screen
+        # current selected article
+        global SelectedArticle
+        global SciLibraDatabaseName
+
+        # if no article is selected then return
+        if SelectedArticle == None:
+            popup = PopUpMessage(title="No Article Selected", message="Please select an article first")
+            # open the popup
+            popup.open()
+            return
+
+
         
+        
+        
+        
+        
+        # open Edit info screen
         randomtargets = ["Saturday", "Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday"]
         randomsources = ["Apple", "Banana", "Orange", "Mango", "Peach", "Strawberry", "Watermelon"]
         
-        
-        # myDualListBox.TargetLabel = target
-        # myDualListBox.SourceLabel = "Manage " + target
-        # myDualListBox.TargetList = randomtargets
-        # myDualListBox.SourceList = randomsources
-        # self.parent.ids.EditInfo_screen.ids.dual_list.add_widget(myDualListBox) 
-        # # self.parent.ids.EditInfo_screen.ids.dual_list.TargetLabel = target
-        # # self.parent.ids.EditInfo_screen.ids.dual_list.SourceLabel = "Manage " + target
-        # # self.parent.ids.EditInfo_screen.ids.dual_list.TargetList = randomtargets
-        # # self.parent.ids.EditInfo_screen.ids.dual_list.SourceList = randomsources
-
-
         myDualListBox = DualListBox(TargetLabel=target, SourceLabel="Manage " + target, TargetList=randomtargets, SourceList=randomsources)
+        # clear the dual list box
+        self.parent.ids.EditInfo_screen.ids.dual_list.clear_widgets()
         self.parent.ids.EditInfo_screen.ids.dual_list.add_widget(myDualListBox)
         self.manager.current = "EditInfo"
-        
-
         pass
 
 class EditInfoScreen(Screen):
@@ -682,7 +685,10 @@ class DualListBox(Widget):
             TargetBox.add_widget(newItem)
             # clear the text input
             TargetAdd.text = ''
-
+    def Close(self):
+        # change SciLibraScreenManager to MainScreen
+        self.parent.parent.parent.current = "main"
+        pass
 class SearchScreen(Screen):
     def gotoMainScreen(self):
         self.manager.current = "main"
@@ -1126,11 +1132,13 @@ class ArticleGroup(Button):
         global currentLibraryViewPressed
         global currentLibraryView
         global currentLibraryViewPage
-
+        global SelectedArticle
         # if the it was pressed before then return the LibraryView to the original state
         if not currentLibraryViewPressed:
             ArticleGroup.createArticleGroupView(self.articlegroupname, self.parentgroup, None, self.clusteringcategory)
             currentLibraryViewPressed = True
+            # clear the selected article
+            SelectedArticle = None
         else:
             # return the LibraryView to the original state
             # Clear all widgets from the LibraryView GridLayout

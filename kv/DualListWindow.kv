@@ -4,7 +4,7 @@
     GridLayout:
         cols: 3
         rows: 1
-        # size: root.size
+        size: root.size
         height: 400
         width: 800
         BoxLayout:
@@ -60,6 +60,14 @@
                     size_hint_x: 0.1
                     background_color: 1, 0, 0, 1
                     on_release: root.UndoSearch(SourceBox)
+            BoxLayout:
+                orientation: 'horizontal'
+                size_hint_y: 0.1
+                Button:
+                    text: 'Close'
+                    size_hint_x: 0.1
+                    on_release: root.Close()
+                    background_color: 1, 0, 0, 1
                     
         BoxLayout:
             orientation: 'vertical'
@@ -127,9 +135,14 @@
                     id: TargetAdd
                     multiline: False
                     hint_text: 'Add New Item'
-
-                
-                    
+            BoxLayout:
+                orientation: 'horizontal'
+                size_hint_y: 0.1
+                Button:
+                    text: 'Save'
+                    size_hint_x: 0.1
+                    on_release: root.Save()
+                    background_color: 0.1, 0.3, 0.1, 1
 <BoxItem@BoxLayout>:
     # text: root.SubAdd
     size_hint_x: 0.1
