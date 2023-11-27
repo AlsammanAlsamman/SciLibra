@@ -67,7 +67,8 @@ articleInfoTable = {'ID': 'text',
                 
                 'publisher': 'text'}
 # Sub Tables
-dbSubTablesInfo = {'taggroups': 'text'
+dbSubTablesInfo = {
+            'taggroups': 'text'
             , 'author': 'text'
             , 'title': 'text'
             , 'keywords': 'text'
@@ -514,18 +515,25 @@ class MainScreen(Screen):
             # open the popup
             popup.open()
             return
-
-
+        # open database
+        libcon = librarydatabase.create_connection(SciLibraDatabaseName)
+        # get the article info from the sub table
+        ArticleInfo = librarydatabase.getArticleInfoByIDfromSubTable2(libcon, target, SelectedArticle)
+        allvalues = librarydatabase.getArticleInfoValuesfromSubTable(libcon, target)
         
         
+        
+        # close connection
+        libcon.close()
+        print(ArticleInfo)
         
         
         
         # open Edit info screen
-        randomtargets = ["Saturday", "Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday"]
-        randomsources = ["Apple", "Banana", "Orange", "Mango", "Peach", "Strawberry", "Watermelon"]
+        targetsList = ArticleInfo
+        randomsources = allvalues
         
-        myDualListBox = DualListBox(TargetLabel=target, SourceLabel="Manage " + target, TargetList=randomtargets, SourceList=randomsources)
+        myDualListBox = DualListBox(TargetLabel=target, SourceLabel="Manage " + target, TargetList=targetsList, SourceList=randomsources)
         # clear the dual list box
         self.parent.ids.EditInfo_screen.ids.dual_list.clear_widgets()
         self.parent.ids.EditInfo_screen.ids.dual_list.add_widget(myDualListBox)

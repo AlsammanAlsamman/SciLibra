@@ -303,6 +303,34 @@ def getArticleInfoByIDfromSubTable(libcon, tableName, articleID):
     if len(data) > 1:
         return "Error: more than one result is returned"
     return data[0][1]
+# expected more than one result to be returned
+def getArticleInfoByIDfromSubTable2(libcon, tableName, articleID):
+    c = libcon.cursor()
+    # insert into database table
+    c.execute('''SELECT * FROM {} WHERE ID=?'''.format(tableName), (articleID,))
+    data = c.fetchall()
+    if not data:
+        return None
+    # get column names
+    dbcols = [description[0] for description in c.description]
+    # convert to list and get the second item
+    data = [item[1] for item in data]
+    return data
+# get all articles info values for specific Table form a subtable
+def getArticleInfoValuesfromSubTable(libcon, tableName):
+    c = libcon.cursor()
+    # insert into database table
+    c.execute('''SELECT * FROM {}'''.format(tableName))
+    data = c.fetchall()
+    if not data:
+        return None
+    # get column names
+    dbcols = [description[0] for description in c.description]
+    # convert to list and get the second item
+    data = [item[1] for item in data]
+    # delete duplicates
+    data = list(set(data))
+    return data
 def searchArticleInfoFromLibraryMainTable(libcon, searchQuery, searchType='title'):
     # create cursor
     c = libcon.cursor()
