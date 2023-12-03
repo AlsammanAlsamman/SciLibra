@@ -326,6 +326,7 @@ class UpdateFolderPath(Popup):
     FolderPaths=[]
     
     def selectfolder(self):
+        print("Hello")
         # show the file chooser
         content = LoadFolderDialog(load=self.load, cancel=self.dismiss_popup, startPath=DefultFolderPath)
         self._popup = Popup(title="Load file", content=content,
@@ -521,13 +522,9 @@ class MainScreen(Screen):
         ArticleInfo = librarydatabase.getArticleInfoByIDfromSubTable2(libcon, target, SelectedArticle)
         allvalues = librarydatabase.getArticleInfoValuesfromSubTable(libcon, target)
         
-        
-        
         # close connection
         libcon.close()
         print(ArticleInfo)
-        
-        
         
         # open Edit info screen
         targetsList = ArticleInfo
@@ -561,6 +558,18 @@ class DualListBox(Widget):
     TargetLabel = StringProperty()
     SourceLabel = StringProperty()
     SourceList = []
+    # save function to ovveride
+    def save(self):
+        # print the Target Label
+        print(self.TargetLabel)
+        # print the Source Label
+        print(self.SourceLabel)
+        # print all items in the TargetBox
+        print("#"*10)
+        for child in self.ids.TargetBox.children:
+            print(child.ItemLabel)
+        # print all items in the SourceBox
+
     def __init__(self, TargetLabel=None, SourceLabel=None, TargetList=None, SourceList=None, **kwargs):
         super().__init__(**kwargs)
         # if the user did not set the TargetLabel
