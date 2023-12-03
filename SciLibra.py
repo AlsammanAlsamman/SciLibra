@@ -326,7 +326,6 @@ class UpdateFolderPath(Popup):
     FolderPaths=[]
     
     def selectfolder(self):
-        print("Hello")
         # show the file chooser
         content = LoadFolderDialog(load=self.load, cancel=self.dismiss_popup, startPath=DefultFolderPath)
         self._popup = Popup(title="Load file", content=content,
@@ -524,13 +523,14 @@ class MainScreen(Screen):
         
         # close connection
         libcon.close()
-        print(ArticleInfo)
         
         # open Edit info screen
         targetsList = ArticleInfo
         randomsources = allvalues
-        
-        myDualListBox = DualListBox(TargetLabel=target, SourceLabel="Manage " + target, TargetList=targetsList, SourceList=randomsources)
+        # if no values in the target then show an empty list
+        if targetsList is None:
+            targetsList = []
+        myDualListBox = DualListBox(TargetLabel=target, SourceLabel="Manage " + target, TargetList=targetsList, SourceList=randomsources, articleID=SelectedArticle)
         # clear the dual list box
         self.parent.ids.EditInfo_screen.ids.dual_list.clear_widgets()
         self.parent.ids.EditInfo_screen.ids.dual_list.add_widget(myDualListBox)
@@ -557,18 +557,37 @@ class DualListBox(Widget):
     # List of the items in the SourceBox for backup  
     TargetLabel = StringProperty()
     SourceLabel = StringProperty()
+    articleID = StringProperty()
     SourceList = []
     # save function to ovveride
-    def save(self):
-        # print the Target Label
-        print(self.TargetLabel)
-        # print the Source Label
-        print(self.SourceLabel)
-        # print all items in the TargetBox
-        print("#"*10)
+    def update(self):
+        # update the database for this article
+        global SciLibraDatabaseName
+        # new values for the target
+        newValues = []
+        # get all children of the TargetBox
         for child in self.ids.TargetBox.children:
-            print(child.ItemLabel)
-        # print all items in the SourceBox
+            newValues.append(child.ItemLabel)
+
+        # open database
+        libcon = librarydatabase.create_connection(SciLibraDatabaseName)
+        # get the article info from the sub table
+        ArticleInfo = librarydatabase.getArticleInfoByIDfromSubTable2(libcon, self.TargetLabel, self.articleID)
+        # compare the new values with the old values and select new values and deleted values
+        if ArticleInfo == None:
+            ArticleInfo = []
+        values2add = [value for value in newValues if value not in ArticleInfo]
+        values2delete = [value for value in ArticleInfo if value not in newValues]
+        # update the database
+        librarydatabase.updateArticleInfoInSubTable(libcon, self.TargetLabel, self.articleID, values2add, values2delete)
+        # # close connection
+        libcon.close()
+        # create a popup message
+        popup = PopUpMessage(title="Article Info Updated", message="Article info is updated successfully")
+        # open the popup
+        popup.open()
+        pass
+
 
     def __init__(self, TargetLabel=None, SourceLabel=None, TargetList=None, SourceList=None, **kwargs):
         super().__init__(**kwargs)

@@ -567,7 +567,19 @@ def updateSubTableRow(libcon, tableName, articleID, articleData, forceUpdate=Fal
     # insert data
     insertArticleData2SubTable(libcon, articleData, articleID, tableName)
     return True
-   
+def updateArticleInfoInSubTable(libcon, tableName, articleID, newvalues, deletedvalues=None):
+    # create cursor
+    c = libcon.cursor()
+    # delete information from the table
+    if deletedvalues != None:
+        for deletedvalue in deletedvalues:
+            c.execute('''DELETE FROM {} WHERE ID=? AND articleData=?'''.format(tableName), (articleID, deletedvalue))
+        # Commit changes
+        libcon.commit()
+    # insert data
+    for newvalue in newvalues:
+        insertArticleData2SubTable(libcon, newvalue, articleID, tableName)
+    return True
 ##################################  delete  ################################################
 def deleteArticle(libcon, articleID, subTablesInfo=None):
     # create cursor
