@@ -1,0 +1,74 @@
+<CommentsManager>:
+    orientation: 'vertical'
+    comments_grid: comments_grid
+    spacing: 10
+    padding: 10
+    ScrollView:
+        # yellow background
+        canvas.before:
+            Color:
+                rgba: 0.1, 0.3, 0.1, 1
+            Rectangle:
+                pos: self.pos
+                size: self.size
+        GridLayout:
+            id: comments_grid
+            cols: 1
+            size_hint_y: None
+            height: self.minimum_height
+            spacing: 10
+            padding: 10
+            row_default_height: 40
+            row_force_default: True
+            cols_minimum: {0: 100, 1: 100, 2: 100, 3: 100, 4: 100}
+
+            
+
+<Comment>:
+    BoxLayout:
+        orientation: 'vertical'
+        size_hint_y: None
+        height: self.minimum_height
+        spacing: 10
+        padding: 10
+        row_default_height: 40
+        row_force_default: True
+        cols_minimum: {0: 100, 1: 100, 2: 100, 3: 100, 4: 100}
+        TextInput:
+            id: comment_text
+            # text: root.text
+            size_hint_y: None
+            height: self.minimum_height
+            text_size: self.width, None
+            valign: 'middle'
+            halign: 'center'
+            font_size: 20
+            color: 0.5, 0.5, 0.5, 1
+            readonly: True
+        BoxLayout:
+            orientation: 'horizontal'
+            size_hint_y: None
+            height: self.minimum_height
+            spacing: 10
+            padding: 10
+            row_default_height: 40
+            row_force_default: True
+            cols_minimum: {0: 100, 1: 100, 2: 100, 3: 100, 4: 100}
+            Label:
+                # text: root.date
+                size_hint_y: None
+                height: 40
+                text_size: self.width, None
+                valign: 'middle'
+                halign: 'center'
+                font_size: 20
+                color: 0.5, 0.5, 0.5, 1
+            Label:
+                # text: root.time
+                size_hint_y: None
+                height: 40
+                text_size: self.width, None
+                valign: 'middle'
+                halign: 'center'
+                font_size: 20
+                color: 0.5, 0.5, 0.5, 1

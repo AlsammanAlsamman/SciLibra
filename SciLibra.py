@@ -502,7 +502,24 @@ class MainScreen(Screen):
             # open the popup
             popup.open()
         pass
-
+    def manage_comments(self):
+        global SciLibraDatabaseName
+        global SelectedArticle
+        # change screen
+        if SelectedArticle == None:
+            popup = PopUpMessage(title="No Article Selected", message="Please select an article first")
+            # open the popup
+            popup.open()
+            return
+        # show the comments manager
+        commentmanager = CommentsManager()
+        commentmanager.ids.comments_grid.add_widget(Comment())
+        # self.parent.ids.comments_manager.clear_widgets()
+        #self.parent.ids.comments_manager.add_widget(commentmanager)
+        # # open edit info screen
+        self.manager.current = "Comments"
+        pass
+        
     def manage_info(self,target):
         # change the color of the target
         # current selected article
@@ -536,7 +553,10 @@ class MainScreen(Screen):
         self.parent.ids.EditInfo_screen.ids.dual_list.add_widget(myDualListBox)
         self.manager.current = "EditInfo"
         pass
-
+class CommentsManager(Screen):
+    pass
+class Comment(BoxLayout):
+    pass
 class EditInfoScreen(Screen):
     pass
 class BoxItem(BoxLayout):

@@ -18,6 +18,7 @@
 #:include kv/FilterDatabase.kv
 #:include kv/DualListWindow.kv
 #:include kv/LoadFolderDialog.kv
+#:include kv/CommentsManager.kv
 
 <MainScreen>:
     name: 'main'
@@ -71,7 +72,7 @@
                         text: 'Comment'
                         #rgb(173,255,47)
                         background_color: 0.678, 0.847, 0.902, 1
-                        on_release: root.manage_info("comment")
+                        on_release: root.manage_comments()
                 
                 
                 # Article Actions
@@ -179,3 +180,6 @@
     EditInfoScreen:
         id: EditInfo_screen
         name: 'EditInfo'
+    CommentsManager:
+        id: comments_manager
+        name: 'Comments'
