@@ -513,10 +513,10 @@ class MainScreen(Screen):
             return
         # show the comments manager
         commentmanager = CommentsManager()
-        commentmanager.ids.comments_grid.add_widget(Comment())
-        # self.parent.ids.comments_manager.clear_widgets()
-        #self.parent.ids.comments_manager.add_widget(commentmanager)
-        # # open edit info screen
+        
+        commentmanager.ids.comments_grid.add_widget(Comment(text="Hello", author="Samman"))
+        # #self.parent.ids.comments_manager.add_widget(commentmanager)
+        # # # open edit info screen
         self.manager.current = "Comments"
         pass
         
@@ -554,9 +554,19 @@ class MainScreen(Screen):
         self.manager.current = "EditInfo"
         pass
 class CommentsManager(Screen):
-    pass
+    # add one comment to test
+    comments_grid = ObjectProperty(None)
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        # add one button to test
+        # print(self.ids)
+        pass
+        # self.ids.comments_grid.add_widget(Comment())
+
+
 class Comment(BoxLayout):
-    pass
+    text = StringProperty('')
+    author = StringProperty('')
 class EditInfoScreen(Screen):
     pass
 class BoxItem(BoxLayout):
