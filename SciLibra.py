@@ -39,6 +39,8 @@ from time import sleep
 from kivy.uix.checkbox import CheckBox
 from kivy.clock import Clock
 from kivy.config import Config
+# random 
+import random
 
 Config.set('kivy','window_icon','icon.png')
 
@@ -81,19 +83,19 @@ dbSubTablesInfo = {
 clusteringCategories = ['title', 'author', 'year', 'journal', 'taggroups', 'keywords']
 
 
-
 # Kivy TreeView Clusters
 TreeCluster_Buttons = None
 PreviousArticleClickedKey = None
 currentClusterView = None
 currentLibraryViewPressed = False
 SelectedArticle = None
+SelectedComment = None
 currentArticleEditInfo = None
 
 SciLibraDatabaseName = "scilibraLibrary.db"
 
 ExampleBibFile = "Articles_example.bib" #!!
-DefultFolderPath = "/home/samman/Documents/MobileApplications/Learn/SciLibra" #!!
+DefultFolderPath = "/home/samman/Documents/MyGitHub/SciLibra" #!!
 
 # Library parameters
 Click2ReturnToolTip = True
@@ -133,7 +135,6 @@ class MenuBar(BoxLayout):
         pass
     
     def dismiss_popup(self):
-        print("Hello")
         self._popup.dismiss()
     
     def load(self, path, filename):
@@ -160,8 +161,10 @@ class MenuBar(BoxLayout):
         pass
 
     def show_load(self):
+        # use default path
+        global DefultFolderPath
         # show the file chooser
-        content = LoadDialog(load=self.load, cancel=self.dismiss_popup)
+        content = LoadDialog(load=self.load, cancel=self.dismiss_popup, startPath=DefultFolderPath)
         self._popup = Popup(title="Load file", content=content,
                             size_hint=(0.9, 0.9), auto_dismiss=False)
         self._popup.open()
@@ -189,23 +192,49 @@ class MenuBar(BoxLayout):
         filterdatabase.open()
     
     def save_database_as_bibtex(self):
+        print("Save Database as BibTex")
         # get all articles from the database
         global SciLibraDatabaseName
-        # open file chooser
-        content = SaveDialog(cancel=self.dismiss_popup)
-        content.save = self.saveDatabase2Bib
-        self._popup = Popup(title="Save file", content=content,
+        global DefultFolderPath
+        # a container for saving the articles
+        saveBox = BoxLayout(orientation='vertical')
+        filenameTextBox = TextInput(hint_text="Enter the file name", multiline=False,
+                                        size_hint=(1, 0.1))
+        # # add a text input for the file name
+        saveBox.add_widget(filenameTextBox)
+        # add a button to save the file
+
+        fileChooser = FileChooserListView()
+        #  default path
+        fileChooser.filters = ["*.bib"]
+        fileChooser.path = DefultFolderPath
+        # select only one file
+        fileChooser.multiselect = False
+        # add the file chooser to the saveBox
+        saveBox.add_widget(fileChooser)
+
+        # add a button to save the file
+        saveButton = Button(text="Save", size_hint=(1, 0.1))
+        saveButton.bind(on_press=lambda x: self.saveDatabase2Bib(fileChooser.path, filenameTextBox.text))
+        saveBox.add_widget(saveButton)
+
+        # add a button to cancel the save
+        cancelButton = Button(text="Cancel", size_hint=(1, 0.1))
+        cancelButton.bind(on_press=lambda x: self.dismiss_popup())
+        saveBox.add_widget(cancelButton)
+
+
+        # # create a popup
+        self._popup = Popup(title="Save file", content=saveBox,
                             size_hint=(0.9, 0.9), auto_dismiss=False)
         self._popup.open()
-
-        
+        pass
     def search_article(self):
         self.parent.parent.manager.current = "search"
         pass
-    
     def saveDatabase2Bib(self, path, filename):
+        print("Save Database as BibTex")
         global SciLibraDatabaseName
-        
         # check validity of the file name
         if filename == "":
             popup = PopUpMessage(title="No File Name", message="Please enter a file name")
@@ -222,25 +251,70 @@ class MenuBar(BoxLayout):
         # open the database
         libcon = librarydatabase.create_connection(SciLibraDatabaseName)
         # get all articles
-        # articles = librarydatabase.getAllArticlesfromMainTable(libcon)
-        # pdf path sub table
-        pdfpathSubTable = librarydatabase.getAllArticlesfromSubTable(libcon, 'comment')
-        print(pdfpathSubTable)
-        # comment
-        # abstrcat
-        # # close connection
-        # libcon.close()
+        articles = librarydatabase.getAllArticlesfromMainTable(libcon)
+        # add keywords from the sub table
+        for article in articles:
+            article_kst = librarydatabase.getArticleInfoByIDfromSubTable2(libcon, 'keywords', article["ID"])
+            if article_kst != None:
+                article["keywords"] = ",".join(article_kst)
+            # print(librarydatabase.getArticleInfoByIDfromSubTable2(libcon, 'keywords', article["ID"]))
 
+        bibtext = ""
+        for article in articles:
+            bibtext += self.Dict2Bibtext(article)
+        # close connection
+        libcon.close()
+        # save the bibtext to the file
+        saveFilename = os.path.join(path, filename + ".bib")
+        # check if the file is already exist
+        if os.path.exists(saveFilename):
+            popup = PopUpMessage(title="File Already Exist", message="The file is already exist")
+            # open the popup
+            popup.open()
+            return
+        
+        with open(saveFilename, "w") as file:
+            file.write(bibtext)
         # dismiss the popup
         self.dismiss_popup()
         pass
+    def Dict2Bibtext(self, dict):
+        # convert the dictionary to bibtext
+        # information needed
+        # ID
+        # title
+        # author
+        # year
+        # journal
+        # taggroups
+        # url
+        # folderpath
+        # keywords
+        # abstract
+        # ENTRYTYPE
+        # pages
+        # volume
+        # number
+        # publisher
+        # month
 
+        # loop and print all the keys and values
+        bibtext = "@article{" + dict["ID"] + ",\n"
+        for key in dict:
+            if dict[key] != None:
+                bibtext += key + " = {" + dict[key] + "},\n"
+        bibtext += "}\n"
+        return bibtext
 
 class SaveDialog(FloatLayout):
+    # save = ObjectProperty(None)
+    # file_name = ObjectProperty(None)
+    # cancel = ObjectProperty(None)
+    # filechooser = ObjectProperty(None)
     save = ObjectProperty(None)
-    file_name = ObjectProperty(None)
+    text_input = ObjectProperty(None)
     cancel = ObjectProperty(None)
-    filechooser = ObjectProperty(None)
+
     
 
 class SearchCriteria(BoxLayout):
@@ -311,6 +385,7 @@ class PopUpMessage(Popup):
 class LoadDialog(FloatLayout):
     load = ObjectProperty(None)
     cancel = ObjectProperty(None)
+    startPath = ObjectProperty(None)
 
 class ArticleInfo(TextInput):
     pass
@@ -326,6 +401,7 @@ class UpdateFolderPath(Popup):
     FolderPaths=[]
     
     def selectfolder(self):
+        global DefultFolderPath
         # show the file chooser
         content = LoadFolderDialog(load=self.load, cancel=self.dismiss_popup, startPath=DefultFolderPath)
         self._popup = Popup(title="Load file", content=content,
@@ -451,7 +527,6 @@ class MainScreen(Screen):
             # open the popup
             popup.open()
             return
-        
         articletextinfo = []
         for info in ArticleDatabaseInfo:
             # if the info is not empty then add it to the info box
@@ -461,9 +536,11 @@ class MainScreen(Screen):
                 articletextinfo.append(str(ArticleDatabaseInfo[info]))
         # add comments
         articletextinfo.append(">>comment<<")
-        comment = librarydatabase.getArticleInfoByIDfromSubTable(libcon, 'comment',SelectedArticle)
-        if comment != None:
-            articletextinfo.append(comment)        
+        comments = librarydatabase.getArticleInfoByIDfromSubTable2(libcon, 'comment',SelectedArticle)
+        # joinComments using "Comment: \n" as a separator
+        if comments != None:
+            comments = "**\n" + "\n**\n".join(comments)
+            articletextinfo.append(comments)
         # close connection
         libcon.close()
 
@@ -472,14 +549,11 @@ class MainScreen(Screen):
         # change the currentArticleEditInfo
         currentArticleEditInfo = ArticleDatabaseInfo
         pass
-    
     def delete_article(self):
         global SciLibraDatabaseName
         global SelectedArticle
         global dbSubTablesInfo
         global currentLibraryView
-
-        
         # change screen
         if SelectedArticle == None:
             popup = PopUpMessage(title="No Article Selected", message="Please select an article first")
@@ -502,6 +576,7 @@ class MainScreen(Screen):
             # open the popup
             popup.open()
         pass
+
     def manage_comments(self):
         global SciLibraDatabaseName
         global SelectedArticle
@@ -511,15 +586,26 @@ class MainScreen(Screen):
             # open the popup
             popup.open()
             return
-        # show the comments manager
-        commentmanager = CommentsManager()
-        
-        commentmanager.ids.comments_grid.add_widget(Comment(text="Hello", author="Samman"))
-        # #self.parent.ids.comments_manager.add_widget(commentmanager)
-        # # # open edit info screen
+        # get all comments for the selected article
+        # open database
+        libcon = librarydatabase.create_connection(SciLibraDatabaseName)
+        comments = librarydatabase.getArticleInfoByIDfromSubTable2(libcon, 'comment', SelectedArticle)
+        # close connection
+        libcon.close()
+        if comments == None:
+            comments = []
+        # open the Comments screen
         self.manager.current = "Comments"
+        # # clear the comments box
+        self.parent.ids.comments_manager.ids.comments_box.clear_widgets()
+        # add the comments to the comments box
+        for comment in comments:
+            # same as an article in the library view
+            CommentC = Comment(text=comment)
+            self.parent.ids.comments_manager.ids.comments_box.add_widget(CommentC)
+            # self.parent.ids.comments_manager.ids.comments_box.add_widget(Comment(text=comment))
         pass
-        
+
     def manage_info(self,target):
         # change the color of the target
         # current selected article
@@ -537,10 +623,8 @@ class MainScreen(Screen):
         # get the article info from the sub table
         ArticleInfo = librarydatabase.getArticleInfoByIDfromSubTable2(libcon, target, SelectedArticle)
         allvalues = librarydatabase.getArticleInfoValuesfromSubTable(libcon, target)
-        
         # close connection
         libcon.close()
-        
         # open Edit info screen
         targetsList = ArticleInfo
         randomsources = allvalues
@@ -563,10 +647,90 @@ class CommentsManager(Screen):
         pass
         # self.ids.comments_grid.add_widget(Comment())
 
+    def add_comment(self, comment):
+        # loop over all children of the comments box and check if the comment is already exist
+        for child in self.ids.comments_box.children:
+            if child.text == comment:
+                # open a popup message
+                popup = PopUpMessage(title="Comment Already Exist", message="The comment is already exist")
+                # open the popup
+                popup.open()
+                return
+        # add comment to database
+        global SciLibraDatabaseName
+        global SelectedArticle
+        # open database
+        libcon = librarydatabase.create_connection(SciLibraDatabaseName)
+        # add the comment to the database
+        librarydatabase.insertArticleData2SubTable(libcon, comment, SelectedArticle, 'comment')
+        # close connection
+        libcon.close()
+        self.ids.comments_box.add_widget(Comment(text=comment))
+        # change the spacing
+        pass
+    def delete_comment(self):
+        global SciLibraDatabaseName
+        global SelectedArticle
+        global SelectedComment
+        # change screen
+        if SelectedComment == None:
+            popup = PopUpMessage(title="No Comment Selected", message="Please select a comment first")
+            # open the popup
+            popup.open()
+            return
+        # open database
+        libcon = librarydatabase.create_connection(SciLibraDatabaseName)
+        # delete the comment from the sub table
+        librarydatabase.deleteArticleDataFromSubTable(libcon, SelectedComment, SelectedArticle, 'comment')
+        # close connection
+        libcon.close()
+        # create a popup message
+        popup = PopUpMessage(title="Comment Deleted", message="Comment is deleted successfully")
+        # open the popup
+        popup.open()
+        # loop over all children of the comments box
+        for child in self.ids.comments_box.children:
+            # if the child is the selected comment
+            if child.text == SelectedComment:
+                # remove the child
+                self.ids.comments_box.remove_widget(child)
+                break
+        pass
 
-class Comment(BoxLayout):
+# The comment view is similar to the Article group view and the Article view
+class Comment(Button):
     text = StringProperty('')
-    author = StringProperty('')
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        # change the height of the button
+        if len(self.text) > 100:
+            self.height = len(self.text)/100*40
+        # How many new lines in the text
+        nLcount = self.text.count("\n")
+        # change the height of the button
+        if nLcount > 0:
+            self.height = nLcount*40
+        # a random color for the button except white and red
+        self.background_color = (random.random(), random.random(), random.random(), 1)
+        while self.background_color == (1, 1, 1, 1) or self.background_color == (1, 0, 0, 1):
+            self.background_color = (random.random(), random.random(), random.random(), 1)
+        pass
+    def on_press(self):
+        global SelectedComment
+        prevComment = SelectedComment
+        # if the same button pass
+        if self.text == SelectedComment:
+            return
+        # change the color of the button
+        self.background_color = (1, 0, 0, 1)
+        SelectedComment = self.text
+        # change the color of the previous button
+        for child in self.parent.children:
+            if child.text == prevComment:
+                child.background_color = (random.random(), random.random(), random.random(), 1)
+        pass
+
+
 class EditInfoScreen(Screen):
     pass
 class BoxItem(BoxLayout):
@@ -1294,7 +1458,6 @@ class GroupMember(Button):
             self.height += 20 * (len(self.text) // 50)
 
     def on_press(self):
-        print(self.articleKey)
         global SciLibraDatabaseName
         global PreviousArticleClickedKey
         global SelectedArticle
@@ -1428,7 +1591,6 @@ class EditScreen(Screen):
     article_info = ObjectProperty(None)
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        # print(self.ids)
     def get_article_info_updatefromText(self, text):
         newArticleInfo = {}
         # split the text into lines
@@ -1446,8 +1608,6 @@ class EditScreen(Screen):
     def buttonPress(self):
         # change screen
         self.manager.current = "main"
-        # add article ti
-        print(self.article_info.text)
         # print(MainScreen().get_article_info_updatefromText("\n".join(articletextinfo)))
     def update_article(self):
         global SciLibraDatabaseName
@@ -1464,7 +1624,6 @@ class EditScreen(Screen):
             # is there any change
             if newArticleInfo[info] != currentArticleEditInfo[info]:
                 changedInfo.append(info)
-        
         # if no change then return
         if len(changedInfo) == 0:
             popup = PopUpMessage(title="No Change", message="No change is made to the article")
@@ -1472,7 +1631,6 @@ class EditScreen(Screen):
             popup.open()
             self.manager.current = "main"
             return
-        
         # open database
         libcon = librarydatabase.create_connection(SciLibraDatabaseName)
         #update the main table
@@ -1483,9 +1641,23 @@ class EditScreen(Screen):
 
         # update the sub tables
         for tableName in dbSubTablesInfo:
-            if tableName in changedInfo:
+            if tableName in changedInfo and tableName is not "comment":
                 #updateSubTableRow(libcon, tableName, articleID, articleData, forceUpdate=False):
                 librarydatabase.updateSubTableRow(libcon, tableName, SelectedArticle, newArticleInfo[tableName], forceUpdate=True)
+            elif tableName in changedInfo and tableName is "comment":
+                # get the article comments from the sub table
+                Comments = newArticleInfo[tableName].split("**")
+                # delete empty comments from new comments
+                Comments = [comment for comment in Comments if comment.strip() != ""]
+                # remove duplicates
+                Comments = list(set(Comments))
+                # Not Good but it is working
+                # delete all comments from the sub table
+                librarydatabase.deleteAllSubTableRowsForArticle(libcon, tableName, SelectedArticle)
+                # add the new comments
+                for comment in Comments:
+                    librarydatabase.insertArticleData2SubTable(libcon,comment, SelectedArticle, tableName)
+
         # close connection
         libcon.close()
         # create a popup message
@@ -1511,7 +1683,6 @@ class AvailableValue(Button):
             self.background_color = (1,1,1,1)
             self.pressed=False
             # add to parent
-            
         else:
             self.background_color = (0,0,1,1)
             self.pressed=True

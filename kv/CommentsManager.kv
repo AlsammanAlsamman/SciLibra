@@ -1,73 +1,105 @@
 #:kivy 1.11.0
-
+#:import Window kivy.core.window.Window
 <CommentsManager>:
     orientation: 'vertical'
-    comments_grid: comments_grid
-    spacing: 10
-    padding: 10
-    ScrollView:
-        # yellow background
-        canvas.before:
-            Color:
-                rgba: 0.1, 0.3, 0.1, 1
-            Rectangle:
+    comments_box: comments_box
+    comment_input: comment_input
+    GridLayout:
+        cols: 1
+        rows: 2
+        # orientation: 'vertical'
+        # size_hint_y: None
+        size: root.size
+        BoxLayout:
+            canvas.before:
+                Color:
+                    #dark green
+                    rgba: 0.5, 0, 0.1, 1
+                Rectangle:
+                    pos: self.pos
+                    size: self.size
+
+            ScrollView:
                 pos: self.pos
-                size: self.size
-        GridLayout:
-            id: comments_grid
-            cols: 1
-            size_hint_y: None
-            height: self.minimum_height
+                scroll_y: 1
+                scroll_type: ['bars', 'content']
+                do_scroll_x: False
+                do_scroll_y: True
+                # size_hint_y: self.height
+                # fill parent
+                # height: root.height
+                size: root.size
+                GridLayout:
+                    cols: 1
+                    size_hint_y: None
+                    height: self.minimum_height
+                    id: comments_box
+                    padding: 1
+                    spacing: 1
+            # add comments and back button
+            # Add new comment
+        BoxLayout:
+            size_hint: 1, 0.3
+            orientation: 'horizontal'
+            padding: 10, 10
             spacing: 10
-            padding: 10
-            row_default_height: 40
-            row_force_default: True
-            cols_minimum: {0: 100, 1: 100, 2: 100, 3: 100, 4: 100}
-            # Comment:
-            #     id: comment
-            #     text: "Hello"
-            #     author: "World"
-            #     size_hint_y: None
-            #     height: self.minimum_height
-            #     text_size: self.width, None
-            #     valign: 'middle'
-            #     halign: 'center'
-            #     font_size: 20
-            #     color: 0.5, 0.5, 0.5, 1
-            # Comment:
-            #     id: comment_2
-            #     text: "Hello 2"
-            #     author: "World 2"
-
-
-            
-
-<Comment>:
-    BoxLayout:
-        orientation: 'vertical'
-        size_hint_y: None
-        height: self.minimum_height
-        spacing: 10
-        padding: 10
-        
-        row_default_height: 40
-        row_force_default: True
-        cols_minimum: {0: 100, 1: 100, 2: 100, 3: 100, 4: 100}
-        TextInput:
-            id: comment_text
-            text: root.text
-            size_hint_y: None
-            scroll_y: 0
-            height: self.minimum_height
-            text_size: self.width, None
-            valign: 'middle'
-            halign: 'center'
-            font_size: 50
-            color: 0.5, 0.5, 0.5, 1
-            readonly: True
-        Label:
-            id: comment_author
-            text: root.author
-            font_size: 20
-            color: 0.5, 0.5, 0.5, 1
-            readonly: True
+            TextInput:
+                id: comment_input
+                multiline: True
+                hint_text: 'Add comment'
+                background_color: 0, 0, 0, 1
+                foreground_color: 1, 1, 1, 1
+                font_size: 20
+                padding: 10, 10
+            Button:
+                text: 'Add'
+                on_press: root.add_comment(comment_input.text)
+                background_color: 0, 0, 1, 1
+                foreground_color: 1, 1, 1, 1
+                font_size: 20
+                size_hint: 0.2, 1
+                pos_hint: {'center_x': 0.5, 'center_y': 0.5}
+                canvas.before:
+                    Color:
+                        rgba: 0, 0, 1, 1
+                    Rectangle:
+                        pos: self.pos
+                        size: self.size
+            # Back button
+            Button:
+                text: 'Back'
+                on_press: root.manager.current = 'main'
+                # light green
+                background_color: 0, 1, 0, 1
+                foreground_color: 1, 1, 1, 1
+                font_size: 20
+                size_hint: 0.2, 1
+                pos_hint: {'center_x': 0.5, 'center_y': 0.5}
+                canvas.before:
+                    Color:
+                        rgba: 0, 0, 1, 1
+                    Rectangle:
+                        pos: self.pos
+                        size: self.size
+            Button:
+                text: 'Delete'
+                on_press: root.delete_comment()
+                # red
+                background_color: 1, 0, 0, 1
+                foreground_color: 1, 1, 1, 1
+                font_size: 20
+                size_hint: 0.2, 1
+                pos_hint: {'center_x': 0.5, 'center_y': 0.5}
+<Comment@Button>:
+    size_hint_y: None
+    height: self.texture_size[1]
+    text_size: self.width, None
+    valign: 'top'
+    halign: 'left'
+    padding_x: 5
+    padding_y: 5
+    markup: True
+    # blue Color
+    background_color: 0, 0, 1, 1
+    color: 1, 1, 1, 1
+    # on_press: self.parent.parent.parent.

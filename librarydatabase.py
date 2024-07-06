@@ -98,10 +98,6 @@ def createSubTables(dbFileName, TableInfo):
     conn.commit()
     # Close connection
     conn.close()
-    
-
-
-
 # create table for Library Properties
 # inputs:
     # libcon: Library connection
@@ -248,6 +244,9 @@ def insertArticle2firstPageImage(libcon, folderPath, ArticleKey, firstPageImageR
     # Commit changes
     libcon.commit()
     return
+
+
+
 
 ##################################  get  ################################################
 
@@ -567,6 +566,7 @@ def updateSubTableRow(libcon, tableName, articleID, articleData, forceUpdate=Fal
     # insert data
     insertArticleData2SubTable(libcon, articleData, articleID, tableName)
     return True
+
 def updateArticleInfoInSubTable(libcon, tableName, articleID, newvalues, deletedvalues=None):
     # create cursor
     c = libcon.cursor()
@@ -594,4 +594,21 @@ def deleteArticle(libcon, articleID, subTablesInfo=None):
             c.execute('''DELETE FROM {} WHERE ID=?'''.format(tableName), (articleID,))
         # Commit changes
         libcon.commit()
+    return True
+# delete article data
+def deleteArticleDataFromSubTable(libcon, DataValue, articleID, tableName):
+    # create cursor
+    c = libcon.cursor()
+    # delete information from the table
+    c.execute('''DELETE FROM {} WHERE ID=? AND articleData=?'''.format(tableName), (articleID, DataValue))
+    # Commit changes
+    libcon.commit()
+    return True
+def deleteAllSubTableRowsForArticle(libcon, tableName, articleID):
+    # create cursor
+    c = libcon.cursor()
+    # delete information from the table
+    c.execute('''DELETE FROM {} WHERE ID=?'''.format(tableName), (articleID,))
+    # Commit changes
+    libcon.commit()
     return True
