@@ -29,13 +29,23 @@ PreviousFirstPageImage = None
     # image: first page of the pdf file in blob format
 #dependencies: pdf2image
 def firstpage2blob(pdf_path, resolution=30):
-    # convert to lower resolution to save memory
-    pages = convert_from_path(pdf_path, 30, first_page=1, last_page=1)
-    pages[0].save("firstpageimage.gif", format="GIF")
-    # open the image file
-    with open("firstpageimage.gif", "rb") as imageFile:
-        image = imageFile.read()
-    return image
+    try:
+        # convert to lower resolution to save memory
+        pages = convert_from_path(pdf_path, resolution, first_page=1, last_page=1)
+        pages[0].save("firstpageimage.gif", format="GIF")
+        # open the image file
+        with open("firstpageimage.gif", "rb") as imageFile:
+            image = imageFile.read()
+        return image
+    except:
+        return None
+    # # convert to lower resolution to save memory
+    # pages = convert_from_path(pdf_path, 30, first_page=1, last_page=1)
+    # pages[0].save("firstpageimage.gif", format="GIF")
+    # # open the image file
+    # with open("firstpageimage.gif", "rb") as imageFile:
+    #     image = imageFile.read()
+    # return image
 # convert blob to image
 # inputs:
     # blob: image in blob format

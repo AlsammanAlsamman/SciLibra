@@ -132,6 +132,8 @@ class MenuBar(BoxLayout):
         pass
     
     def add_article(self):
+        # change screen
+        self.parent.parent.manager.current = "ArticleBoard"
         pass
     
     def dismiss_popup(self):
@@ -139,13 +141,10 @@ class MenuBar(BoxLayout):
     
     def load(self, path, filename):
         notinserted = []
-        
         entries=articledata.read_bibfile(filename[0])
         # create connection
         libcon = librarydatabase.create_connection('scilibraLibrary.db')
         notinserted = librarydatabase.insertArticleSet2Library(libcon, entries, articleInfoTable, dbSubTablesInfo)
-        # close connection
-        libcon.close()
         self.dismiss_popup()
         if len(notinserted) > 0:
             # create a popup message
@@ -160,6 +159,14 @@ class MenuBar(BoxLayout):
             popup.open()
         pass
 
+        # clear the library view
+        self.librarylistview.clear_widgets()
+        # open the database
+        libcon = librarydatabase.create_connection(SciLibraDatabaseName)
+        # create a new tree view with the new clustering category
+        LibraryListView.createLibrayViewList(self.librarylistview, libcon, currentClusteringCategory)
+        # close connection
+        libcon.close()
     def show_load(self):
         # use default path
         global DefultFolderPath
@@ -258,6 +265,18 @@ class MenuBar(BoxLayout):
             if article_kst != None:
                 article["keywords"] = ",".join(article_kst)
             # print(librarydatabase.getArticleInfoByIDfromSubTable2(libcon, 'keywords', article["ID"]))
+        # add taggroups from the sub table
+        for article in articles:
+            article_kst = librarydatabase.getArticleInfoByIDfromSubTable2(libcon, 'taggroups', article["ID"])
+            if article_kst != None:
+                article["taggroups"] = ",".join(article_kst)
+        # add comments from the sub table
+        for article in articles:
+            article_kst = librarydatabase.getArticleInfoByIDfromSubTable2(libcon, 'comment', article["ID"])
+            if article_kst != None:
+                article["comment"] = "**" + "**".join(article_kst)
+        # close connection
+        libcon.close()
 
         bibtext = ""
         for article in articles:
@@ -272,7 +291,6 @@ class MenuBar(BoxLayout):
             # open the popup
             popup.open()
             return
-        
         with open(saveFilename, "w") as file:
             file.write(bibtext)
         # dismiss the popup
@@ -305,6 +323,54 @@ class MenuBar(BoxLayout):
                 bibtext += key + " = {" + dict[key] + "},\n"
         bibtext += "}\n"
         return bibtext
+    def delete_all_articles(self):
+        print("Delete All Articles")
+        global SciLibraDatabaseName
+        # open database
+        libcon = librarydatabase.create_connection(SciLibraDatabaseName)
+        # delete all articles
+        librarydatabase.deleteAllArticles(libcon, dbSubTablesInfo)
+        # close connection
+        libcon.close()
+        # update the library view
+        # create a popup message
+        popup = PopUpMessage(title="All Articles Deleted", message="All articles are deleted successfully")
+        # open the popup
+        popup.open()
+        # update the library view
+        libView = self.librarylistview
+        libView.clear_widgets()
+        pass
+    def delete_article(self):
+        global SciLibraDatabaseName
+        global SelectedArticle
+        # change screen
+        if SelectedArticle == None:
+            popup = PopUpMessage(title="No Article Selected", message="Please select an article first")
+            # open the popup
+            popup.open()
+            return
+        # open database
+        libcon = librarydatabase.create_connection(SciLibraDatabaseName)
+        # delete the article from the main table
+        deleteted = librarydatabase.deleteArticle(libcon, SelectedArticle, dbSubTablesInfo)
+        # create a popup message
+        if deleteted:
+            popup = PopUpMessage(title="Article Deleted", message="Article is deleted successfully")
+            # open the popup
+            popup.open()
+        else:
+            popup = PopUpMessage(title="Article Not Deleted", message="Article is not deleted")
+            # open the popup
+            popup.open()
+        # update the library view
+        libView = self.librarylistview
+        libView.clear_widgets()
+        # create a new tree view with the new clustering category
+        LibraryListView.createLibrayViewList(libView, libcon, currentClusteringCategory)
+        # close connection
+        libcon.close()
+
 
 class SaveDialog(FloatLayout):
     # save = ObjectProperty(None)
@@ -314,8 +380,6 @@ class SaveDialog(FloatLayout):
     save = ObjectProperty(None)
     text_input = ObjectProperty(None)
     cancel = ObjectProperty(None)
-
-    
 
 class SearchCriteria(BoxLayout):
     criteria = StringProperty('')
@@ -387,6 +451,98 @@ class LoadDialog(FloatLayout):
     cancel = ObjectProperty(None)
     startPath = ObjectProperty(None)
 
+class ArticleBoard(Screen):
+    bibText = StringProperty('')
+    pdfPath = StringProperty('')
+    pdfs = []
+    def select_pdf (self):
+        # create a BoxLayout with the filechooser two buttons and "Add PDF" and "Cancel"
+        box = BoxLayout(orientation='vertical')
+        # file chooser
+        fileChooser = FileChooserListView()
+        #  default path
+        fileChooser.path = DefultFolderPath
+        # select only one file
+        fileChooser.multiselect = False
+        # pdf files only
+        fileChooser.filters = ["*.pdf"]
+        # add the file chooser to the box
+        box.add_widget(fileChooser)
+        # Grid layout for the buttons
+        grid = GridLayout(cols=2)
+        # add the buttons to the grid
+        addPDF = Button(text="Add PDF")
+        addPDF.bind(on_press=lambda x: self.add_pdf(fileChooser.path, fileChooser.selection))
+        grid.add_widget(addPDF)
+        # add the buttons to the grid
+        cancel = Button(text="Cancel")
+        cancel.bind(on_press=lambda x: self.dismiss_popup())
+        grid.add_widget(cancel)
+        # add the grid to the box
+        box.add_widget(grid)
+        # create a popup
+        self._popup = Popup(title="Select PDF File", content=box,
+                            size_hint=(0.9, 0.9), auto_dismiss=False)
+        self._popup.open()
+        pass
+    def add_pdf(self, path, filename):
+        # add the pdf path to the pdf path text box
+        self.pdfs.append(os.path.join(path, filename[0]))
+        self.pdfPath = "\n".join(self.pdfs)
+        # dismiss the popup
+        self.dismiss_popup()
+        pass
+    def dismiss_popup(self):
+        self._popup.dismiss()
+    def save_article(self):
+        # first get the bibtext
+        bibtext = self.bibText
+        # get the pdf path
+        pdfs = self.pdfs
+        # check if the bibtext is empty
+        if bibtext == "":
+            popup = PopUpMessage(title="No BibText", message="Please enter the BibText")
+            # open the popup
+            popup.open()
+            return
+        # check if the pdf path is empty
+        if pdfs == []:
+            popup = PopUpMessage(title="No PDF", message="Please select the PDF file")
+            # open the popup
+            popup.open()
+            return
+        ## Bibtext
+        notinserted = []
+        # open database
+        libcon = librarydatabase.create_connection(SciLibraDatabaseName)
+        # save hte bibtex to temp file
+        with open("temp.bib", "w") as file:
+            file.write(bibtext)
+        # read the bibtex file
+        entries=articledata.read_bibfile("temp.bib")
+        # delete the temp file
+        os.remove("temp.bib")
+        # insert the article to the database
+        notinserted = librarydatabase.insertArticle2Library(libcon, entries, articleInfoTable, dbSubTablesInfo)
+
+        # insert the pdf path
+        for pdf in pdfs:
+            # get the article key
+            articleKey = os.path.splitext(os.path.basename(pdf))[0]
+            print(articleKey)
+            # # insert the pdf path
+            # librarydatabase.updateMainTableRow(libcon, 'folderpath', articleKey, os.path.dirname(pdf))
+            # # insert the first page image
+            # librarydatabase.insertArticle2firstPageImage(libcon, os.path.dirname(pdf), articleKey)
+
+
+
+    def dismiss(self):
+        # dismiss the popup and go back to the main screen
+        self.manager.current = "main"
+
+
+
 class ArticleInfo(TextInput):
     pass
 
@@ -425,7 +581,7 @@ class UpdateFolderPath(Popup):
         pdfList = []
         for folder in self.FolderPaths:
             if folder != "":
-                pdfList += [os.path.join(folder, f) for f in os.listdir(folder) if f.endswith(".pdf")]
+                pdfList = [os.path.join(folder, f) for f in os.listdir(folder) if f.endswith(".pdf")]
         # open the database
         global SciLibraDatabaseName
         libcon = librarydatabase.create_connection(SciLibraDatabaseName)
@@ -444,6 +600,11 @@ class UpdateFolderPath(Popup):
                 librarydatabase.insertArticle2firstPageImage(libcon, FolderPaths[i], ArticleKeys[i], libraryProperties["firstpageimageresolution"])
         # close connection
         libcon.close()
+        # create a popup message
+        popup = PopUpMessage(title="Folder Paths Updated", message="Folder paths are updated successfully")
+        # open the popup
+        popup.open()
+        pass
 
         
 class ArticleListLabel(TreeViewLabel):

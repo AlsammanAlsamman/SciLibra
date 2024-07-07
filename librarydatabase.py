@@ -199,13 +199,21 @@ def insertArticleBib2MainTable(libcon, articlebib, dbColumnInfo):
     # articleData: Article data
 # dependencies: sqlite3, os
 def  insertArticleData2SubTable(libcon, articleData, articleKey, tableName):
+    # if the data is empty
+    if articleData == '':
+        articleData = 'None'
     c = libcon.cursor()
     if tableName in ['taggroups', 'keywords']:
         articleData = articleData.split(',')
     if tableName == 'author':
         articleData = articleData.split('and ')
+    if tableName == 'comment':
+        if articleData != '':
+            articleData = articleData.split('**')
+            # remove empty strings
+            articleData = [item for item in articleData if item]
     # if data is list
-    if tableName in ['author', 'taggroups', 'keywords']:
+    if tableName in ['author', 'taggroups', 'keywords', 'comment']:
         for data in articleData:
             # insert into database table
             c.execute('''INSERT INTO {} VALUES (?,?)'''.format(tableName), (articleKey, data.strip()))
@@ -237,17 +245,18 @@ def insertArticle2firstPageImage(libcon, folderPath, ArticleKey, firstPageImageR
     if not folderPath.endswith(systemPathSeparator):
         folderPath += systemPathSeparator
     # get article ID
+    # check if the file exists
+    if not os.path.exists(folderPath + ArticleKey + '.pdf'):
+        return
     articleblob = articledata.firstpage2blob(folderPath + ArticleKey + '.pdf', firstPageImageResolution)
+    if articleblob == None:
+        return
     # insert into database table
     c = libcon.cursor()
     c.execute('''INSERT INTO firstpageimages VALUES (?,?)''', (ArticleKey, articleblob))
     # Commit changes
     libcon.commit()
     return
-
-
-
-
 ##################################  get  ################################################
 
 def getAllArticlesfromMainTable(libcon):
@@ -611,4 +620,18 @@ def deleteAllSubTableRowsForArticle(libcon, tableName, articleID):
     c.execute('''DELETE FROM {} WHERE ID=?'''.format(tableName), (articleID,))
     # Commit changes
     libcon.commit()
+    return True
+
+def deleteAllArticles(libcon, subTablesInfo=None):
+    c = libcon.cursor()
+    # delete information from the main table
+    c.execute('''DELETE FROM articles''')
+    # Commit changes
+    libcon.commit()
+    # delete information from subtables
+    if subTablesInfo != None:
+        for tableName in subTablesInfo.keys():
+            c.execute('''DELETE FROM {}'''.format(tableName))
+        # Commit changes
+        libcon.commit()
     return True

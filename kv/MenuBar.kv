@@ -1,4 +1,4 @@
-
+#:kivy 1.11.0
 <MenuBar>:
     height: self.minimum_height
     orientation: 'vertical'
@@ -21,7 +21,6 @@
                 background_color: 1, 0, 0, 1
                 with_previous: False
                 app_icon: 'icon_main.png'
-                
             # ActionButton:
             #     text: 'help'
             #     # open small dialog with help
@@ -74,6 +73,24 @@
                         height: 44
                         width: 200
                         on_release: root.search_article()
+                    Button:
+                        text: 'Add Article'
+                        size_hint: None, None
+                        height: 44
+                        width: 200
+                        on_release: root.add_article()
+                    Button:
+                        text: 'Delete Article'
+                        size_hint: None, None
+                        height: 44
+                        width: 200
+                        on_release: root.delete_article()
+                    Button:
+                        text: 'Delete All Articles'
+                        size_hint: None, None
+                        height: 44
+                        width: 200
+                        on_release: root.delete_all_articles()
             # empty action item to fill the space
             ActionButton:
                 text: ''

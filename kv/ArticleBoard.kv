@@ -1,0 +1,66 @@
+#:kivy 1.11.0
+
+<ArticleBoard@Popup>:
+    articleTitle: ''
+    pdfPath: ''
+    size_hint: None, None
+    size: 600, 600
+    title: 'Article Board'
+    auto_dismiss: False
+    BoxLayout:
+        orientation: 'vertical'
+        padding: 10
+        spacing: 10
+        size_hint_y: 1
+        size_hint_x: 1
+        
+        BoxLayout:
+            orientation: 'vertical'
+            size_hint_y: 0.4
+            size_hint_x: 1
+            padding: [10, 10]
+            Label:
+                text: 'Article(s) BibTeX'
+                size_hint_y: None
+                height: 30
+            TextInput:
+                id: article_title
+                multiline: True
+                text: root.articleTitle
+                readonly: False
+                background_color: 0.8, 0.8, 0.8, 1
+        
+        BoxLayout:
+            orientation: 'vertical'
+            size_hint_y: 0.6
+            size_hint_x: 1
+            padding: [10, 10]
+            Label:
+                text: 'PDF(s) Path'
+                size_hint_y: None
+                height: 30
+            Button:
+                text: 'Select PDFs'
+                on_release: root.select_pdf()
+                size_hint_y: None
+                height: 30
+            TextInput:
+                id: pdf_path
+                multiline: True
+                text: root.pdfPath
+                readonly: False
+                background_color: 0.8, 0.8, 0.8, 1
+                # scrollable
+                scroll_y: 1
+        BoxLayout:
+            orientation: 'horizontal'
+            size_hint_y: None
+            height: 50
+            padding: [10, 10]
+            spacing: 10
+            Button:
+                text: 'OK'
+                on_release: root.save_article()
+            Button:
+                text: 'Cancel'
+                on_release: root.dismiss()

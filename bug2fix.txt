@@ -1,1 +1,49 @@
-LibraryView Search status changing ---- Fixed
+ Traceback (most recent call last):
+   File "/home/samman/.local/lib/python3.10/site-packages/pdf2image/pdf2image.py", line 589, in pdfinfo_from_path
+     raise ValueError
+ ValueError
+ 
+ During handling of the above exception, another exception occurred:
+ 
+ Traceback (most recent call last):
+   File "/home/samman/Documents/MyGitHub/SciLibra/SciLibra.py", line 1717, in <module>
+     SciLibra().run()
+   File "/home/samman/.local/lib/python3.10/site-packages/kivy/app.py", line 956, in run
+     runTouchApp()
+   File "/home/samman/.local/lib/python3.10/site-packages/kivy/base.py", line 574, in runTouchApp
+     EventLoop.mainloop()
+   File "/home/samman/.local/lib/python3.10/site-packages/kivy/base.py", line 339, in mainloop
+     self.idle()
+   File "/home/samman/.local/lib/python3.10/site-packages/kivy/base.py", line 383, in idle
+     self.dispatch_input()
+   File "/home/samman/.local/lib/python3.10/site-packages/kivy/base.py", line 334, in dispatch_input
+     post_dispatch_input(*pop(0))
+   File "/home/samman/.local/lib/python3.10/site-packages/kivy/base.py", line 302, in post_dispatch_input
+     wid.dispatch('on_touch_up', me)
+   File "kivy/_event.pyx", line 731, in kivy._event.EventDispatcher.dispatch
+   File "/home/samman/.local/lib/python3.10/site-packages/kivy/uix/behaviors/button.py", line 179, in on_touch_up
+     self.dispatch('on_release')
+   File "kivy/_event.pyx", line 727, in kivy._event.EventDispatcher.dispatch
+   File "kivy/_event.pyx", line 1307, in kivy._event.EventObservers.dispatch
+   File "kivy/_event.pyx", line 1191, in kivy._event.EventObservers._dispatch
+   File "/home/samman/.local/lib/python3.10/site-packages/kivy/lang/builder.py", line 55, in custom_callback
+     exec(__kvlang__.co_value, idmap)
+   File "/home/samman/Documents/MyGitHub/SciLibra/kv/LoadDialog.kv", line 23, in <module>
+     on_release: root.load(filechooser.path, filechooser.selection)
+   File "/home/samman/Documents/MyGitHub/SciLibra/SciLibra.py", line 146, in load
+     notinserted = librarydatabase.insertArticleSet2Library(libcon, entries, articleInfoTable, dbSubTablesInfo)
+   File "/home/samman/Documents/MyGitHub/SciLibra/librarydatabase.py", line 138, in insertArticleSet2Library
+     if insertArticle2Library(libcon, article, dbColumnInfo, subTablesInfo, libraryProperties) != True:
+   File "/home/samman/Documents/MyGitHub/SciLibra/librarydatabase.py", line 168, in insertArticle2Library
+     insertArticle2firstPageImage(libcon, articlebib['folderpath'], articlebib['ID'], firstPageImageResolution, forceUpdate=True)
+   File "/home/samman/Documents/MyGitHub/SciLibra/librarydatabase.py", line 240, in insertArticle2firstPageImage
+     articleblob = articledata.firstpage2blob(folderPath + ArticleKey + '.pdf', firstPageImageResolution)
+   File "/home/samman/Documents/MyGitHub/SciLibra/articledata.py", line 33, in firstpage2blob
+     pages = convert_from_path(pdf_path, 30, first_page=1, last_page=1)
+   File "/home/samman/.local/lib/python3.10/site-packages/pdf2image/pdf2image.py", line 127, in convert_from_path
+     page_count = pdfinfo_from_path(
+   File "/home/samman/.local/lib/python3.10/site-packages/pdf2image/pdf2image.py", line 598, in pdfinfo_from_path
+     raise PDFPageCountError(
+ pdf2image.exceptions.PDFPageCountError: Unable to get page count.
+ I/O Error: Couldn't open file '/tam2019benefits.pdf': No such file or directory.
+
