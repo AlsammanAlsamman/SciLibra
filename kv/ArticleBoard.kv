@@ -7,6 +7,8 @@
     size: 600, 600
     title: 'Article Board'
     auto_dismiss: False
+    bibTextBox: bibTextBox
+    pdfPathBox: pdfPathBox
     BoxLayout:
         orientation: 'vertical'
         padding: 10
@@ -24,9 +26,8 @@
                 size_hint_y: None
                 height: 30
             TextInput:
-                id: article_title
+                id: bibTextBox
                 multiline: True
-                text: root.articleTitle
                 readonly: False
                 background_color: 0.8, 0.8, 0.8, 1
         
@@ -45,9 +46,8 @@
                 size_hint_y: None
                 height: 30
             TextInput:
-                id: pdf_path
+                id: pdfPathBox
                 multiline: True
-                text: root.pdfPath
                 readonly: False
                 background_color: 0.8, 0.8, 0.8, 1
                 # scrollable

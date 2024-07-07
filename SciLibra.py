@@ -452,8 +452,8 @@ class LoadDialog(FloatLayout):
     startPath = ObjectProperty(None)
 
 class ArticleBoard(Screen):
-    bibText = StringProperty('')
-    pdfPath = StringProperty('')
+    bibTextBox = ObjectProperty('')
+    pdfPathBox = ObjectProperty('')
     pdfs = []
     def select_pdf (self):
         # create a BoxLayout with the filechooser two buttons and "Add PDF" and "Cancel"
@@ -487,8 +487,18 @@ class ArticleBoard(Screen):
         pass
     def add_pdf(self, path, filename):
         # add the pdf path to the pdf path text box
-        self.pdfs.append(os.path.join(path, filename[0]))
-        self.pdfPath = "\n".join(self.pdfs)
+        try:
+            self.pdfPathBox.text +=  filename[0] + "\n"
+        except:
+            # some error
+            popup = PopUpMessage(title="Invalid PDF", message="Please select a valid PDF file")
+            # open the popup
+            popup.open()
+            return
+
+
+        # add the pdf to the pdfs list
+        self.pdfs.append(path + "/" + filename[0])
         # dismiss the popup
         self.dismiss_popup()
         pass
@@ -496,9 +506,9 @@ class ArticleBoard(Screen):
         self._popup.dismiss()
     def save_article(self):
         # first get the bibtext
-        bibtext = self.bibText
+        bibtext = self.bibTextBox.text
         # get the pdf path
-        pdfs = self.pdfs
+        pdfs = self.pdfPathBox.text.strip().split("\n")
         # check if the bibtext is empty
         if bibtext == "":
             popup = PopUpMessage(title="No BibText", message="Please enter the BibText")
@@ -518,23 +528,49 @@ class ArticleBoard(Screen):
         # save hte bibtex to temp file
         with open("temp.bib", "w") as file:
             file.write(bibtext)
-        # read the bibtex file
+        # # read the bibtex file
         entries=articledata.read_bibfile("temp.bib")
-        # delete the temp file
+        # # delete the temp file
         os.remove("temp.bib")
-        # insert the article to the database
-        notinserted = librarydatabase.insertArticle2Library(libcon, entries, articleInfoTable, dbSubTablesInfo)
-
+        print(entries)
+        # # # insert the article to the database
+        notinserted = librarydatabase.insertArticleSet2Library(libcon, entries, articleInfoTable, dbSubTablesInfo)
+        print(notinserted)
         # insert the pdf path
         for pdf in pdfs:
+            pdf = pdf.strip()
+            path = os.path.dirname(pdf)
             # get the article key
             articleKey = os.path.splitext(os.path.basename(pdf))[0]
-            print(articleKey)
-            # # insert the pdf path
-            # librarydatabase.updateMainTableRow(libcon, 'folderpath', articleKey, os.path.dirname(pdf))
-            # # insert the first page image
-            # librarydatabase.insertArticle2firstPageImage(libcon, os.path.dirname(pdf), articleKey)
-
+            # insert the pdf path
+            if not os.path.exists(pdf):
+                popup = PopUpMessage(title="PDF Not Found: " + articleKey, message="The PDF file is not found")
+                # open the popup
+                popup.open()
+                return
+            librarydatabase.updateMainTableRow(libcon, 'folderpath', articleKey, path, True)
+            # insert the first page image
+            try:
+                librarydatabase.insertArticle2firstPageImage(libcon, pdf, articleKey)
+            except:
+                pass
+        # close connection
+        libcon.close()
+        # create a popup message
+        if len(notinserted) > 0:
+            popup = PopUpMessage(title="Not Inserted Articles", message="The following " + str(len(notinserted)) + " articles are not inserted:\n" + "\n".join(notinserted))
+            # open the popup
+            popup.open()
+        else:
+            popup = PopUpMessage(title="Inserted Articles", message="All articles are inserted successfully")
+            # open the popup
+            popup.open()
+        # clear the text boxes
+        self.bibTextBox.text = ""
+        self.pdfPathBox.text = ""
+        self.pdfs = []
+        # return to the main screen
+        self.manager.current = "main"
 
 
     def dismiss(self):
@@ -955,7 +991,9 @@ class DualListBox(Widget):
         for target in TargetList:
             self.ids.TargetBox.add_widget(BoxItem(ItemLabel=target,  
                                                   size_hint_y=None, height=40, ItemSource=self.ids.TargetBox))
-
+        # if the SourceList is empty add "No Source" to the SourceList
+        if SourceList == None:
+            SourceList = []
         for source in SourceList:
             self.ids.SourceBox.add_widget(BoxItem(ItemLabel=source,  
                                                   size_hint_y=None, height=40, ItemSource=self.ids.SourceBox))
