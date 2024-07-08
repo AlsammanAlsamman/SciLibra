@@ -443,7 +443,6 @@ def getArticleValuesforKeyInSubTable(libcon, tableName, key):
     # Close connection
     return data
 
-
 def getValuesforColumnInMainTable(libcon, colname):
     # create cursor
     c = libcon.cursor() 
@@ -496,7 +495,16 @@ def getLibraryProperties(libcon):
     # convert to a dictionary
     data = {item[0]:item[1] for item in data}
     return data
-
+def getAllValuesForColumnInMainTable(libcon, colname):
+    # return a diction of Article ID and its value
+    c = libcon.cursor()
+    # insert into database table
+    c.execute('''SELECT ID, {} FROM articles'''.format(colname))
+    data = c.fetchall()
+    # convert to a dictionary
+    data = {item[0]:item[1] for item in data}
+    return data
+    
 
 # get first page image from the database
 def getFirstPageImage(libcon, articlekey):

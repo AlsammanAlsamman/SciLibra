@@ -400,8 +400,67 @@ class MenuBar(BoxLayout):
         popup = PopUpMessage(title="General Statistics", message=Report)
         popup.open()
         pass
-        
+    def create_library_viewForSelection(self, articles, SelectionCriteria):
+        # create a library view with the articles
+        libView = self.librarylistview
+        libView.clear_widgets()
+        # open database
+        libcon = librarydatabase.create_connection(SciLibraDatabaseName)
+        global currentLibraryView
+        ArticleTitles = librarydatabase.getArticleValuesforKeySetInSubTable(libcon, 'title', articles)
+        ArticlesCluster = {}
+        for article in ArticleTitles:
+            # get the cluster name
+            clustername = ArticleTitles[article]
+            # if the cluster is not in the cluster then add it
+            if clustername not in ArticlesCluster:
+                ArticlesCluster[clustername] = []
+            # add the article to the cluster
+            ArticlesCluster[clustername].append(article)
 
+        # create ArticlesClusterList
+        ArticlesClusterList = []
+        for category in ArticlesCluster:
+            narticles = len(ArticlesCluster[category])
+            # create a dictionary for the cluster
+            cluster = {}
+            cluster["name"] = category
+            cluster["narticles"] = narticles
+            # add the cluster to the list
+            ArticlesClusterList.append(cluster)
+        # change the currentLibraryView
+        currentLibraryView = ArticlesCluster
+        LibraryListView.createLibrayViewListForList(self.librarylistview, ArticlesClusterList)
+        pass
+    def articles_with_no_pdf(self):
+        # get all articles IDs from the main table and compare with IDs from folderpath
+        global SciLibraDatabaseName
+        libcon = librarydatabase.create_connection(SciLibraDatabaseName)
+        articleID_Path = librarydatabase.getAllValuesForColumnInMainTable(libcon, 'folderpath')
+        libcon.close()
+        
+        pdfMissingOrNotFound = []
+        for article in articleID_Path:
+            articlePDF=os.path.join(articleID_Path[article], article+".pdf")
+            if not os.path.exists(articlePDF):
+                pdfMissingOrNotFound.append(article)
+
+        # unlist the set
+        if len(pdfMissingOrNotFound) == 0:
+            popup = PopUpMessage(title="No Articles without PDF", message="All articles have PDFs")
+            # open the popup
+            popup.open()
+            return
+        # create a popup message
+        popup = PopUpMessage(title="Articles without PDF", message="The following " + str(len(pdfMissingOrNotFound)) + " articles have no PDFs:\n" + "\n".join(pdfMissingOrNotFound))
+        # open the popup
+        popup.open()
+        # create a library view with the articlesNoPDF
+        libView = self.librarylistview
+        libView.clear_widgets()
+        # create a library view with the articles
+        self.create_library_viewForSelection( pdfMissingOrNotFound, "Articles without PDF")
+        pass
 
 class SaveDialog(FloatLayout):
     # save = ObjectProperty(None)
@@ -673,15 +732,12 @@ class UpdateFolderPath(Popup):
         # open the popup
         popup.open()
         pass
-
-        
 class ArticleListLabel(TreeViewLabel):
     # add a new property to the class
     ArticleKey = ""
     def __init__(self, ArticleKey=None, **kwargs):
         super().__init__(**kwargs)
         self.ArticleKey = ArticleKey
-        
     def on_touch_down(self, touch):
         ## print object id
         ## print(id(self))
@@ -1184,7 +1240,7 @@ class SearchScreen(Screen):
         currentLibraryView = ArticlesCluster
         LibraryListView.createLibrayViewListForList(self.parent.ids.main_screen.ids.library_view.ids.list_tool, ArticlesClusterList)
         pass
-
+    
     def search_article(self):
         global searchCriteria
         global SciLibraDatabaseName
@@ -1367,7 +1423,7 @@ class LibraryListView(Widget):
         # clear the search status
         global searchStatus
         searchStatus = False
-        
+    
     def nextPage(self):
         global currentLibraryViewPage
         global currentLibraryView
