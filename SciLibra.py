@@ -437,7 +437,6 @@ class MenuBar(BoxLayout):
         global SciLibraDatabaseName
         libcon = librarydatabase.create_connection(SciLibraDatabaseName)
         articleID_Path = librarydatabase.getAllValuesForColumnInMainTable(libcon, 'folderpath')
-        libcon.close()
         
         pdfMissingOrNotFound = []
         for article in articleID_Path:
@@ -451,8 +450,18 @@ class MenuBar(BoxLayout):
             # open the popup
             popup.open()
             return
+        
+        # extract the title from the main table
+        ArticleTitles = librarydatabase.getArticleValuesforKeySetInSubTable(libcon, 'title', pdfMissingOrNotFound)
+        # create a report contains ID and title
+        Report = ""
+        for article in pdfMissingOrNotFound:
+            Report += article + ": " + ArticleTitles[article] + "\n"
+
+        libcon.close()
+
         # create a popup message
-        popup = PopUpMessage(title="Articles without PDF", message="The following " + str(len(pdfMissingOrNotFound)) + " articles have no PDFs:\n" + "\n".join(pdfMissingOrNotFound))
+        popup = PopUpMessage(title="Articles without PDF", message="The following " + str(len(pdfMissingOrNotFound)) + " articles have no PDFs:\n" + Report)
         # open the popup
         popup.open()
         # create a library view with the articlesNoPDF
