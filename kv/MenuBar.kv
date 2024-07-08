@@ -91,6 +91,25 @@
                         height: 44
                         width: 200
                         on_release: root.delete_all_articles()
+            # ActionButton:
+            #     text: 'Statistics'
+            #     on_release: actions_drop.open(self)
+            #     DropDown:
+            #         id: actions_drop
+            #         auto_width: False
+            #         width: 200
+            #         Button:
+            #             text: 'General Statistics'
+            #             size_hint: None, None
+            #             height: 44
+            #             width: 200
+            #             on_release: root.general_statistics()
+            #         Button:
+            #             text: 'Articles with no PDF'
+            #             size_hint: None, None
+            #             height: 44
+            #             width: 200
+            #             on_release: root.articles_with_no_pdf()
             # empty action item to fill the space
             ActionButton:
                 text: ''

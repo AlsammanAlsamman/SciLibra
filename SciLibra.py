@@ -95,7 +95,8 @@ currentArticleEditInfo = None
 SciLibraDatabaseName = "scilibraLibrary.db"
 
 ExampleBibFile = "Articles_example.bib" #!!
-DefultFolderPath = "/home/samman/Documents/MyGitHub/SciLibra" #!!
+# DefultFolderPath = "/home/samman/Documents/MyGitHub/SciLibra" #!!
+DefultFolderPath = "/home/samman/Documents/Read_article/PDF_LIBRARY_STORAGE/Group_1"
 
 # Library parameters
 Click2ReturnToolTip = True
@@ -370,6 +371,36 @@ class MenuBar(BoxLayout):
         LibraryListView.createLibrayViewList(libView, libcon, currentClusteringCategory)
         # close connection
         libcon.close()
+    
+    def general_statistics(self):
+        # open the database
+        global SciLibraDatabaseName
+        libcon = librarydatabase.create_connection(SciLibraDatabaseName)
+        # get the number of articles
+        numArticles = librarydatabase.getNumberOfArticles(libcon)
+        # values in main table
+        MainTableValues = {}
+        for key in articleInfoTable:
+            MainTableValues[key] = librarydatabase.getValuesCountforColumnInMainTable(libcon, key, True)
+        # values in sub tables
+        SubTableValues = {}
+        for key in dbSubTablesInfo:
+            SubTableValues[key] = librarydatabase.getValuesCountforColumnInSubTable(libcon, key, True)
+        # close connection
+        libcon.close()
+        # create a popup message
+        Report = ""
+        Report += "Number of Articles: " + str(numArticles) + "\n"
+        Report += "Main Table Values: " 
+        for key in MainTableValues:
+            Report += "\n" + key + ": " + str(MainTableValues[key])
+        Report += "\nSub Table Values: "
+        for key in SubTableValues:
+            Report += "\n" + key + ": " + str(SubTableValues[key])
+        popup = PopUpMessage(title="General Statistics", message=Report)
+        popup.open()
+        pass
+        
 
 
 class SaveDialog(FloatLayout):
@@ -618,6 +649,7 @@ class UpdateFolderPath(Popup):
         for folder in self.FolderPaths:
             if folder != "":
                 pdfList = [os.path.join(folder, f) for f in os.listdir(folder) if f.endswith(".pdf")]
+
         # open the database
         global SciLibraDatabaseName
         libcon = librarydatabase.create_connection(SciLibraDatabaseName)

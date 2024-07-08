@@ -529,6 +529,7 @@ def checkArticleExistence(libcon, articleID):
 def updateMainTableRowSet(libcon, colname, articleIDSet, articleDataSet, forceUpdate=False):
     notUpdatedArticles = []
     for i in range(len(articleIDSet)):
+        # print("Yes")
         updatedSuccess = updateMainTableRow(libcon, colname, articleIDSet[i], articleDataSet[i], forceUpdate)
         if not updatedSuccess:
             notUpdatedArticles.append(articleIDSet[i])
@@ -557,7 +558,7 @@ def updateMainTableRow(libcon, colname, articleID, articleData, forceUpdate=Fals
     libcon.commit()
     return True
 
-def updateSubTableRowSet(libcon, tableName, articleIDSet, articleDataSet, forceUpdate=False):
+def updateSubTableRowSet(libcon, tableName, articleIDSet, articleDataSet, forceUpdate=True):
     notUpdatedArticles = []
     for i in range(len(articleIDSet)):
         updatedSuccess = updateSubTableRow(libcon, tableName, articleIDSet[i], articleDataSet[i], forceUpdate)
@@ -565,7 +566,7 @@ def updateSubTableRowSet(libcon, tableName, articleIDSet, articleDataSet, forceU
             notUpdatedArticles.append(articleIDSet[i])
     return notUpdatedArticles
 
-def updateSubTableRow(libcon, tableName, articleID, articleData, forceUpdate=False):
+def updateSubTableRow(libcon, tableName, articleID, articleData, forceUpdate=True):
     # create cursor
     c = libcon.cursor()
     # delete information from the table
@@ -635,3 +636,55 @@ def deleteAllArticles(libcon, subTablesInfo=None):
         # Commit changes
         libcon.commit()
     return True
+
+################### STATs
+def getNumberOfArticles(libcon):
+    c = libcon.cursor()
+    # insert into database table
+    c.execute('''SELECT COUNT(ID) FROM articles''')
+    data = c.fetchone()
+    # convert data to a dictionary
+    data = data[0]
+    return data
+
+def getValuesCountforColumnInMainTable(libcon, colname, unique=False):
+    c = libcon.cursor()
+    if unique:
+        # insert into database table
+        c.execute('''SELECT COUNT(DISTINCT {}) FROM articles'''.format(colname))
+    else:
+        # insert into database table
+        c.execute('''SELECT COUNT({}) FROM articles'''.format(colname))
+    data = c.fetchone()
+    # convert data to a dictionary
+    data = data[0]
+    return data
+def getValuesCountforColumnInSubTable(libcon, tableName, unique=False):
+    c = libcon.cursor()
+    if unique:
+        # insert into database table
+        c.execute('''SELECT COUNT(DISTINCT articleData) FROM {}'''.format(tableName))
+    else:
+        # insert into database table
+        c.execute('''SELECT COUNT(articleData) FROM {}'''.format(tableName))
+    data = c.fetchone()
+    # convert data to a dictionary
+    data = data[0]
+    return data
+def getNumberOfArticlesWithFirstPageImage(libcon):
+    c = libcon.cursor()
+    # insert into database table
+    c.execute('''SELECT COUNT(ID) FROM firstpageimages''')
+    data = c.fetchone()
+    # convert data to a dictionary
+    data = data[0]
+    return data
+
+def getNumberOfArticlesWithoutFirstPageImage(libcon):
+    c = libcon.cursor()
+    # insert into database table
+    c.execute('''SELECT COUNT(ID) FROM articles WHERE ID NOT IN (SELECT ID FROM firstpageimages)''')
+    data = c.fetchone()
+    # convert data to a dictionary
+    data = data[0]
+    return data
