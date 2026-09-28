@@ -1,0 +1,882 @@
+#:kivy 2.1
+#:import theme scilibra.gui.theme
+#:import dp kivy.metrics.dp
+
+# ---------------------------------------------------------------- basic widgets
+<FlatButton@Button>:
+    bg: theme.BUTTON
+    background_normal: ''
+    background_down: ''
+    background_disabled_normal: ''
+    background_color: theme.darker(self.bg, 0.08) if self.state == 'down' else self.bg
+    color: theme.TEXT
+    disabled_color: theme.MUTED
+    opacity: 0.45 if self.disabled else 1
+    font_size: '14sp'
+    size_hint_y: None
+    height: dp(36)
+    padding: dp(12), 0
+
+<AccentButton@FlatButton>:
+    bg: theme.ACCENT
+
+<DangerButton@FlatButton>:
+    bg: theme.DANGER
+
+<TLabel@Label>:
+    color: theme.TEXT
+    font_size: '14sp'
+    text_size: self.width, None
+    size_hint_y: None
+    height: self.texture_size[1]
+    markup: True
+
+<MutedLabel@TLabel>:
+    color: theme.MUTED
+    font_size: '13sp'
+
+<FieldLabel@Label>:
+    color: theme.MUTED
+    font_size: '13sp'
+    size_hint_x: None
+    width: dp(96)
+    text_size: self.size
+    halign: 'right'
+    valign: 'middle'
+    padding: dp(8), 0
+
+<DarkInput@TextInput>:
+    background_normal: ''
+    background_active: ''
+    background_color: theme.INPUT
+    foreground_color: theme.TEXT
+    cursor_color: theme.ACCENT
+    selection_color: 0.26, 0.52, 0.96, 0.45
+    hint_text_color: theme.MUTED
+    padding: dp(10), dp(9)
+    font_size: '14sp'
+    multiline: False
+    write_tab: False
+    size_hint_y: None
+    height: dp(38)
+
+<Panel@BoxLayout>:
+    canvas.before:
+        Color:
+            rgba: theme.PANEL
+        RoundedRectangle:
+            pos: self.pos
+            size: self.size
+            radius: [dp(6)]
+
+<DarkSpinner@Spinner>:
+    background_normal: ''
+    background_down: ''
+    background_color: theme.BUTTON
+    color: theme.TEXT
+    size_hint_y: None
+    height: dp(36)
+    font_size: '14sp'
+    option_cls: 'DarkSpinnerOption'
+
+<DarkSpinnerOption@SpinnerOption>:
+    background_normal: ''
+    background_color: theme.INPUT
+    color: theme.TEXT
+    height: dp(36)
+
+# ---------------------------------------------------------------- library list row
+<ListRow>:
+    orientation: 'horizontal'
+    padding: dp(12), dp(6)
+    spacing: dp(8)
+    canvas.before:
+        Color:
+            rgba: theme.ROW_SELECTED if self.selected else (theme.darker(theme.ROW_GROUP if self.kind == 'group' else theme.ROW, 0.04) if self.state == 'down' else (theme.ROW_GROUP if self.kind == 'group' else theme.ROW))
+        Rectangle:
+            pos: self.pos
+            size: self.size
+    BoxLayout:
+        orientation: 'vertical'
+        Label:
+            text: root.title
+            color: theme.TEXT
+            font_size: '14sp'
+            bold: root.kind == 'group'
+            text_size: self.size
+            halign: 'left'
+            valign: 'middle'
+            shorten: True
+            shorten_from: 'right'
+        Label:
+            text: root.subtitle + ('' if root.has_pdf else ('  ·  no PDF' if root.subtitle else 'no PDF'))
+            color: theme.MUTED if root.has_pdf else theme.WARN
+            font_size: '12sp'
+            text_size: self.size
+            halign: 'left'
+            valign: 'middle'
+            shorten: True
+            size_hint_y: None
+            height: dp(18) if (root.subtitle or not root.has_pdf) else 0
+            opacity: 1 if (root.subtitle or not root.has_pdf) else 0
+    Label:
+        text: root.count
+        color: theme.TEXT
+        font_size: '13sp'
+        size_hint_x: None
+        width: dp(44) if root.count else 0
+        canvas.before:
+            Color:
+                rgba: (0.3, 0.42, 0.4, 1) if root.count else (0, 0, 0, 0)
+            RoundedRectangle:
+                pos: self.x, self.center_y - dp(11)
+                size: self.width, dp(22)
+                radius: [dp(11)]
+
+<CommentRow>:
+    size_hint_y: None
+    height: max(dp(36), lbl.texture_size[1] + dp(14))
+    spacing: dp(8)
+    padding: dp(10), 0, 0, 0
+    canvas.before:
+        Color:
+            rgba: theme.ROW
+        RoundedRectangle:
+            pos: self.pos
+            size: self.size
+            radius: [dp(4)]
+    Label:
+        id: lbl
+        text: root.text
+        color: theme.TEXT
+        font_size: '14sp'
+        text_size: self.width, None
+        valign: 'middle'
+    FlatButton:
+        text: 'Remove'
+        size_hint: None, None
+        width: dp(76)
+        height: dp(30)
+        font_size: '12sp'
+        pos_hint: {'center_y': 0.5}
+        on_release: app.remove_comment(root.text)
+
+# ---------------------------------------------------------------- main window
+<SciLibraRoot@BoxLayout>:
+    orientation: 'vertical'
+
+    # toolbar
+    BoxLayout:
+        size_hint_y: None
+        height: dp(56)
+        padding: dp(12), dp(10)
+        spacing: dp(8)
+        canvas.before:
+            Color:
+                rgba: theme.PANEL
+            Rectangle:
+                pos: self.pos
+                size: self.size
+        Image:
+            source: app.icon
+            size_hint: None, None
+            size: dp(34), dp(34)
+            pos_hint: {'center_y': 0.5}
+        Label:
+            text: '[b]SciLibra[/b]'
+            markup: True
+            color: theme.TEXT
+            font_size: '20sp'
+            size_hint_x: None
+            width: dp(96)
+        FlatButton:
+            text: 'Add'
+            size_hint_x: None
+            width: dp(72)
+            on_release: app.open_menu(self, 'add')
+        FlatButton:
+            text: 'Library'
+            size_hint_x: None
+            width: dp(84)
+            on_release: app.open_menu(self, 'library')
+        FlatButton:
+            text: 'Help'
+            size_hint_x: None
+            width: dp(64)
+            on_release: app.open_menu(self, 'help')
+        Widget:
+        DarkInput:
+            id: search
+            hint_text: 'Search articles... (Ctrl+F)'
+            size_hint_x: None
+            width: dp(340)
+            on_text_validate: app.search(self.text)
+        AccentButton:
+            text: 'Search'
+            size_hint_x: None
+            width: dp(80)
+            on_release: app.search(search.text)
+        FlatButton:
+            text: 'Options'
+            size_hint_x: None
+            width: dp(80)
+            on_release: app.search_options()
+
+    # body
+    BoxLayout:
+        padding: dp(10)
+        spacing: dp(10)
+
+        # left: groups / articles
+        Panel:
+            orientation: 'vertical'
+            size_hint_x: 0.42
+            padding: dp(10)
+            spacing: dp(8)
+            BoxLayout:
+                size_hint_y: None
+                height: dp(36)
+                spacing: dp(8)
+                Label:
+                    text: 'Group by'
+                    color: theme.MUTED
+                    size_hint_x: None
+                    width: dp(70)
+                DarkSpinner:
+                    id: group_spinner
+                    text: app.group_choice
+                    values: app.group_choices
+                    on_text: app.group_choice = self.text
+            BoxLayout:
+                size_hint_y: None
+                height: dp(36)
+                spacing: dp(8)
+                FlatButton:
+                    text: '< Back' if app.can_go_back else ''
+                    size_hint_x: None
+                    width: dp(76) if app.can_go_back else 0
+                    opacity: 1 if app.can_go_back else 0
+                    on_release: if app.can_go_back: app.go_back()
+                Label:
+                    text: app.breadcrumb
+                    color: theme.TEXT
+                    bold: True
+                    text_size: self.size
+                    halign: 'left'
+                    valign: 'middle'
+                    shorten: True
+            DarkInput:
+                id: list_filter
+                hint_text: 'Filter this list... (Ctrl+L)'
+                on_text: app.apply_filter()
+            RelativeLayout:
+                RecycleView:
+                    id: rv
+                    viewclass: 'ListRow'
+                    bar_width: dp(8)
+                    scroll_type: ['bars', 'content']
+                    RecycleBoxLayout:
+                        default_size: None, dp(56)
+                        default_size_hint: 1, None
+                        size_hint_y: None
+                        height: self.minimum_height
+                        orientation: 'vertical'
+                        spacing: dp(2)
+                Label:
+                    text: ('Your library is empty.\n\nUse [b]Add[/b] to import a BibTeX file,\npaste BibTeX, or add PDF files.' if (app.library and app.library.count() == 0 and not list_filter.text) else 'Nothing to show.') if app.list_count == 0 else ''
+                    markup: True
+                    halign: 'center'
+                    color: theme.MUTED
+                    text_size: self.width - dp(20), None
+            Label:
+                text: '{} {}'.format(app.list_count, 'item' if app.list_count == 1 else 'items')
+                color: theme.MUTED
+                font_size: '12sp'
+                size_hint_y: None
+                height: dp(16)
+                text_size: self.size
+                halign: 'right'
+
+        # right: details
+        Panel:
+            orientation: 'vertical'
+            padding: dp(4)
+            ScrollView:
+                id: details_scroll
+                do_scroll_x: False
+                bar_width: dp(8)
+                BoxLayout:
+                    orientation: 'vertical'
+                    size_hint_y: None
+                    height: self.minimum_height
+                    padding: dp(16)
+                    spacing: dp(12)
+                    TLabel:
+                        text: '' if app.selected_key else 'Select an article on the left to see its details.\n\nTips: double-click (or Enter) opens the PDF, arrow keys move through the list, Esc goes back.'
+                        color: theme.MUTED
+                        height: 0 if app.selected_key else self.texture_size[1] + dp(40)
+                        opacity: 0 if app.selected_key else 1
+                        halign: 'center'
+                        padding: 0, dp(40), 0, 0
+                    BoxLayout:
+                        size_hint_y: None
+                        height: max(head.height, thumb.height) if app.selected_key else 0
+                        opacity: 1 if app.selected_key else 0
+                        spacing: dp(16)
+                        BoxLayout:
+                            id: head
+                            orientation: 'vertical'
+                            pos_hint: {'top': 1}
+                            size_hint_y: None
+                            height: self.minimum_height
+                            spacing: dp(8)
+                            TLabel:
+                                text: '[b]' + app.d_title + '[/b]'
+                                font_size: '20sp'
+                            TLabel:
+                                text: app.d_meta
+                                color: theme.MUTED
+                            TLabel:
+                                text: app.d_pdf
+                                font_size: '12sp'
+                                color: theme.MUTED
+                        Image:
+                            id: thumb
+                            texture: app.d_thumb
+                            size_hint: None, None
+                            size: (dp(170), dp(220)) if app.d_thumb else (0, 0)
+                            pos_hint: {'top': 1}
+                            fit_mode: 'contain'
+                    TLabel:
+                        text: app.d_body
+                        on_ref_press: app.on_ref(args[1])
+                        height: (self.texture_size[1] if app.selected_key else 0)
+                    TLabel:
+                        text: '[b]Comments[/b]' if app.selected_key else ''
+                        height: (self.texture_size[1] if app.selected_key else 0)
+                    BoxLayout:
+                        id: comments_box
+                        orientation: 'vertical'
+                        size_hint_y: None
+                        height: self.minimum_height
+                        spacing: dp(4)
+                    BoxLayout:
+                        size_hint_y: None
+                        height: dp(38) if app.selected_key else 0
+                        opacity: 1 if app.selected_key else 0
+                        spacing: dp(8)
+                        DarkInput:
+                            id: comment_input
+                            hint_text: 'Write a comment and press Enter...'
+                            disabled: not app.selected_key
+                            on_text_validate: app.add_comment(self.text)
+                        FlatButton:
+                            text: 'Add'
+                            size_hint_x: None
+                            width: dp(70)
+                            disabled: not app.selected_key
+                            on_release: app.add_comment(comment_input.text)
+            BoxLayout:
+                size_hint_y: None
+                height: dp(52)
+                padding: dp(10), dp(8)
+                spacing: dp(8)
+                AccentButton:
+                    text: 'Open PDF'
+                    disabled: not app.selected_key
+                    on_release: app.open_pdf()
+                FlatButton:
+                    text: 'Attach PDF...'
+                    disabled: not app.selected_key
+                    on_release: app.attach_pdf()
+                FlatButton:
+                    text: 'Edit...'
+                    disabled: not app.selected_key
+                    on_release: app.edit_article()
+                FlatButton:
+                    text: 'Copy BibTeX'
+                    disabled: not app.selected_key
+                    on_release: app.copy_bibtex()
+                FlatButton:
+                    text: 'Folder'
+                    disabled: not app.d_has_pdf
+                    on_release: app.open_folder()
+                DangerButton:
+                    text: 'Delete'
+                    disabled: not app.selected_key
+                    on_release: app.delete_article()
+
+    # status bar
+    BoxLayout:
+        size_hint_y: None
+        height: dp(26)
+        padding: dp(12), 0
+        canvas.before:
+            Color:
+                rgba: theme.PANEL
+            Rectangle:
+                pos: self.pos
+                size: self.size
+        Label:
+            text: app.status
+            color: theme.TEXT
+            font_size: '12sp'
+            text_size: self.size
+            halign: 'left'
+            valign: 'middle'
+            shorten: True
+        Label:
+            text: app.library_info
+            color: theme.MUTED
+            font_size: '12sp'
+            text_size: self.size
+            halign: 'right'
+            valign: 'middle'
+            shorten: True
+            shorten_from: 'left'
+
+# ---------------------------------------------------------------- dialogs
+<BasePopup>:
+    title_size: '16sp'
+    separator_color: theme.ACCENT
+    background: ''
+    background_color: theme.PANEL
+
+<MessageDialog>:
+    size_hint: 0.72, 0.72
+    BoxLayout:
+        orientation: 'vertical'
+        spacing: dp(10)
+        ScrollView:
+            do_scroll_x: False
+            TLabel:
+                text: root.message
+                markup: False
+                font_name: 'RobotoMono-Regular'
+                font_size: '13sp'
+        BoxLayout:
+            size_hint_y: None
+            height: dp(38)
+            spacing: dp(8)
+            Widget:
+            FlatButton:
+                text: 'Copy text'
+                size_hint_x: None
+                width: dp(110)
+                on_release: root.copy()
+            AccentButton:
+                text: 'Close'
+                size_hint_x: None
+                width: dp(110)
+                on_release: root.dismiss()
+
+<ConfirmDialog>:
+    size_hint: 0.62, 0.6
+    BoxLayout:
+        orientation: 'vertical'
+        spacing: dp(10)
+        ScrollView:
+            do_scroll_x: False
+            TLabel:
+                text: root.message
+                markup: False
+        BoxLayout:
+            size_hint_y: None
+            height: dp(38)
+            spacing: dp(8)
+            Widget:
+            FlatButton:
+                text: 'Cancel'
+                size_hint_x: None
+                width: dp(110)
+                on_release: root.dismiss()
+            FlatButton:
+                text: root.confirm_text
+                bg: theme.DANGER if root.danger else theme.ACCENT
+                size_hint_x: None
+                width: max(dp(110), self.texture_size[0] + dp(24))
+                on_release: root.confirm()
+
+<TextDialog>:
+    size_hint: 0.8, 0.85
+    BoxLayout:
+        orientation: 'vertical'
+        spacing: dp(8)
+        TLabel:
+            text: root.info
+            color: theme.MUTED
+            height: self.texture_size[1] if root.info else 0
+        DarkInput:
+            id: input
+            text: root.text
+            hint_text: root.hint
+            multiline: True
+            size_hint_y: 1
+            font_name: 'RobotoMono-Regular'
+            font_size: '13sp'
+        BoxLayout:
+            size_hint_y: None
+            height: dp(38)
+            spacing: dp(8)
+            Widget:
+            FlatButton:
+                text: 'Cancel'
+                size_hint_x: None
+                width: dp(110)
+                on_release: root.dismiss()
+            AccentButton:
+                text: root.confirm_text
+                size_hint_x: None
+                width: dp(110)
+                on_release: root.confirm()
+
+<ProgressDialog>:
+    size_hint: 0.5, None
+    height: dp(180)
+    BoxLayout:
+        orientation: 'vertical'
+        spacing: dp(10)
+        Label:
+            text: root.message
+            color: theme.TEXT
+            text_size: self.size
+            halign: 'left'
+            valign: 'middle'
+            shorten: True
+        ProgressBar:
+            max: root.maximum
+            value: root.value
+            size_hint_y: None
+            height: dp(20)
+        BoxLayout:
+            size_hint_y: None
+            height: dp(36)
+            Widget:
+            FlatButton:
+                text: 'Cancelling...' if root.cancelled else 'Cancel'
+                disabled: root.cancelled
+                size_hint_x: None
+                width: dp(120)
+                on_release: root.cancelled = True
+
+<FileDialog>:
+    size_hint: 0.9, 0.9
+    BoxLayout:
+        orientation: 'vertical'
+        spacing: dp(8)
+        BoxLayout:
+            size_hint_y: None
+            height: dp(38)
+            spacing: dp(6)
+            FlatButton:
+                text: 'Up'
+                size_hint: None, None
+                size: dp(56), dp(38)
+                on_release: root.go_up()
+            FlatButton:
+                text: 'Home'
+                size_hint: None, None
+                size: dp(70), dp(38)
+                on_release: root.go_to('~')
+            DarkInput:
+                id: path_input
+                text: chooser.path
+                on_text_validate: root.go_to(self.text)
+        FileChooserListView:
+            id: chooser
+            path: root.path
+            filters: root.filters
+            multiselect: root.multiselect
+            dirselect: root.mode == 'folder'
+            on_submit: if root.mode == 'open': root.confirm()
+        BoxLayout:
+            size_hint_y: None
+            height: dp(38) if root.mode == 'save' else 0
+            opacity: 1 if root.mode == 'save' else 0
+            spacing: dp(8)
+            FieldLabel:
+                text: 'File name'
+            DarkInput:
+                id: filename
+                text: root.filename
+                disabled: root.mode != 'save'
+                on_text_validate: root.confirm()
+        BoxLayout:
+            size_hint_y: None
+            height: dp(38)
+            spacing: dp(8)
+            Label:
+                text: root.error or ('Folder: ' + chooser.path if root.mode == 'folder' else ('{} selected'.format(len(chooser.selection)) if root.mode == 'open' and chooser.selection else ''))
+                color: theme.ERROR if root.error else theme.MUTED
+                text_size: self.size
+                halign: 'left'
+                valign: 'middle'
+                shorten: True
+            FlatButton:
+                text: 'Cancel'
+                size_hint_x: None
+                width: dp(110)
+                on_release: root.dismiss()
+            AccentButton:
+                text: root.confirm_text
+                size_hint_x: None
+                width: max(dp(110), self.texture_size[0] + dp(24))
+                on_release: root.confirm()
+
+<PickRow>:
+    size_hint_y: None
+    height: dp(34)
+    spacing: dp(6)
+    CheckBox:
+        active: root.checked
+        size_hint_x: None
+        width: dp(34)
+        on_release: root.toggle()
+    Label:
+        text: root.text
+        color: theme.TEXT
+        text_size: self.size
+        halign: 'left'
+        valign: 'middle'
+        shorten: True
+    Label:
+        text: str(root.count) if root.count else 'new'
+        color: theme.MUTED
+        font_size: '12sp'
+        size_hint_x: None
+        width: dp(40)
+
+<ValuePicker>:
+    size_hint: 0.55, 0.85
+    BoxLayout:
+        orientation: 'vertical'
+        spacing: dp(8)
+        DarkInput:
+            id: filter
+            hint_text: 'Filter...'
+            on_text: root.refresh()
+        RecycleView:
+            id: rv
+            viewclass: 'PickRow'
+            bar_width: dp(8)
+            scroll_type: ['bars', 'content']
+            RecycleBoxLayout:
+                default_size: None, dp(34)
+                default_size_hint: 1, None
+                size_hint_y: None
+                height: self.minimum_height
+                orientation: 'vertical'
+        BoxLayout:
+            size_hint_y: None
+            height: dp(38)
+            spacing: dp(8)
+            DarkInput:
+                id: new_value
+                hint_text: 'New value(s), comma separated'
+                on_text_validate: root.add_new(self.text)
+            FlatButton:
+                text: 'Add'
+                size_hint_x: None
+                width: dp(70)
+                on_release: root.add_new(new_value.text)
+        MutedLabel:
+            text: '{} selected: {}'.format(len(root.selected), ', '.join(root.selected))
+            shorten: True
+            text_size: self.width, dp(18)
+            height: dp(18)
+        BoxLayout:
+            size_hint_y: None
+            height: dp(38)
+            spacing: dp(8)
+            Widget:
+            FlatButton:
+                text: 'Cancel'
+                size_hint_x: None
+                width: dp(110)
+                on_release: root.dismiss()
+            AccentButton:
+                text: 'Done'
+                size_hint_x: None
+                width: dp(110)
+                on_release: root.done()
+
+<ArticleEditor>:
+    size_hint: 0.92, 0.94
+    BoxLayout:
+        orientation: 'vertical'
+        spacing: dp(8)
+        ScrollView:
+            do_scroll_x: False
+            bar_width: dp(8)
+            BoxLayout:
+                orientation: 'vertical'
+                size_hint_y: None
+                height: self.minimum_height
+                spacing: dp(8)
+                padding: 0, 0, dp(12), 0
+                BoxLayout:
+                    size_hint_y: None
+                    height: dp(38)
+                    spacing: dp(8)
+                    FieldLabel:
+                        text: 'Type'
+                    DarkSpinner:
+                        id: entry_type
+                        text: 'article'
+                        values: ['article', 'inproceedings', 'book', 'incollection', 'inbook', 'phdthesis', 'mastersthesis', 'techreport', 'misc', 'unpublished', 'online']
+                        size_hint_x: None
+                        width: dp(170)
+                    FieldLabel:
+                        text: 'Key *'
+                    DarkInput:
+                        id: key
+                        hint_text: 'e.g. smith2020deep (PDF name: <key>.pdf)'
+                BoxLayout:
+                    size_hint_y: None
+                    height: dp(64)
+                    FieldLabel:
+                        text: 'Title *'
+                    DarkInput:
+                        id: title
+                        multiline: True
+                        height: dp(64)
+                BoxLayout:
+                    size_hint_y: None
+                    height: dp(100)
+                    FieldLabel:
+                        text: 'Authors'
+                    DarkInput:
+                        id: authors
+                        multiline: True
+                        height: dp(100)
+                        hint_text: 'One author per line, e.g.\nSmith, John\nDoe, Jane'
+                BoxLayout:
+                    size_hint_y: None
+                    height: dp(38)
+                    FieldLabel:
+                        text: 'Journal'
+                    DarkInput:
+                        id: journal
+                        hint_text: 'Journal, conference or book title'
+                BoxLayout:
+                    size_hint_y: None
+                    height: dp(38)
+                    FieldLabel:
+                        text: 'Year'
+                    DarkInput:
+                        id: year
+                        input_filter: 'int'
+                    FieldLabel:
+                        text: 'Volume'
+                    DarkInput:
+                        id: volume
+                    FieldLabel:
+                        text: 'Number'
+                    DarkInput:
+                        id: number
+                    FieldLabel:
+                        text: 'Pages'
+                    DarkInput:
+                        id: pages
+                BoxLayout:
+                    size_hint_y: None
+                    height: dp(38)
+                    FieldLabel:
+                        text: 'Publisher'
+                    DarkInput:
+                        id: publisher
+                BoxLayout:
+                    size_hint_y: None
+                    height: dp(38)
+                    spacing: dp(8)
+                    FieldLabel:
+                        text: 'DOI'
+                    DarkInput:
+                        id: doi
+                        hint_text: 'e.g. 10.1371/journal.pone.0291204'
+                    FlatButton:
+                        text: 'Fetch details'
+                        size_hint_x: None
+                        width: dp(120)
+                        on_release: root.fetch_doi()
+                BoxLayout:
+                    size_hint_y: None
+                    height: dp(38)
+                    FieldLabel:
+                        text: 'URL'
+                    DarkInput:
+                        id: url
+                BoxLayout:
+                    size_hint_y: None
+                    height: dp(38)
+                    spacing: dp(8)
+                    FieldLabel:
+                        text: 'Keywords'
+                    DarkInput:
+                        id: keywords
+                        hint_text: 'Comma separated'
+                    FlatButton:
+                        text: 'Pick...'
+                        size_hint_x: None
+                        width: dp(80)
+                        on_release: root.pick('keywords')
+                BoxLayout:
+                    size_hint_y: None
+                    height: dp(38)
+                    spacing: dp(8)
+                    FieldLabel:
+                        text: 'Tag groups'
+                    DarkInput:
+                        id: taggroups
+                        hint_text: 'Your own groups, comma separated (e.g. to-read, thesis)'
+                    FlatButton:
+                        text: 'Pick...'
+                        size_hint_x: None
+                        width: dp(80)
+                        on_release: root.pick('taggroups')
+                BoxLayout:
+                    size_hint_y: None
+                    height: dp(38)
+                    spacing: dp(8)
+                    FieldLabel:
+                        text: 'PDF file'
+                    DarkInput:
+                        id: pdf
+                        hint_text: 'Path of the PDF (optional)'
+                    FlatButton:
+                        text: 'Browse...'
+                        size_hint_x: None
+                        width: dp(80)
+                        on_release: root.browse_pdf()
+                BoxLayout:
+                    size_hint_y: None
+                    height: dp(150)
+                    FieldLabel:
+                        text: 'Abstract'
+                    DarkInput:
+                        id: abstract
+                        multiline: True
+                        height: dp(150)
+        Label:
+            text: root.error or root.status
+            color: theme.ERROR if root.error else theme.MUTED
+            size_hint_y: None
+            height: dp(20)
+            text_size: self.size
+            halign: 'left'
+            shorten: True
+        BoxLayout:
+            size_hint_y: None
+            height: dp(38)
+            spacing: dp(8)
+            Widget:
+            FlatButton:
+                text: 'Cancel'
+                size_hint_x: None
+                width: dp(110)
+                on_release: root.dismiss()
+            AccentButton:
+                text: 'Save'
+                size_hint_x: None
+                width: dp(110)
+                on_release: root.save()

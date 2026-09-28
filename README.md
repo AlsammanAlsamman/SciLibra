@@ -1,63 +1,135 @@
-
 ![SciLibra icon](SciLibra_icon.png)
-# SciLibra 
 
+# SciLibra
 
-## Description
-SciLibra is a free and open-source software for managing scientific articles. It provides a user interface for organizing and viewing scientific articles, including features for importing articles from BibTeX files, clustering articles by different categories, and viewing article details.
+SciLibra is a free and open-source desktop application for managing scientific articles.
+Keep your BibTeX references and PDF files together, browse them by keywords, tag groups,
+authors, year or journal, search everything, write comments, and export clean BibTeX.
 
-## How to use SciLibra
-1. Download you articles from your favorite search engine as a BibTeX and PDF files.
-2. Import the BibTeX file into SciLibra.
-3. Use the update path in the Action menu to update the PDF path for your article.
-4. The bibtex file can contain several articles, and the PDF files can be in different folders.
-6. The PDF file name should be the same as the BibTeX key.
+## Features
 
-## Example of BibTeX file
+- **Add articles in several ways**
+  - import a `.bib` file (all entry types: article, inproceedings, book, thesis, ...).
+    PDFs named `<key>.pdf` next to the file are linked automatically;
+  - paste BibTeX copied from Google Scholar, a journal website, etc.;
+  - **add PDF files or a whole folder of PDFs**: the DOI is read from each PDF and the
+    details (title, authors, journal, year, abstract...) are downloaded from Crossref.
+    Without internet the title is taken from the PDF, and you can complete it later;
+  - fill in a form (type a DOI and press *Fetch details* to fill it for you).
+- **Browse** by keywords, tag groups, authors, year or journal, with the number of articles in each group,
+  and a filter box that narrows any list as you type.
+- **Search** titles, authors, abstracts, keywords, tag groups, journal, year, comments, key and DOI.
+  Several terms can be separated with `;` (any term, or all terms).
+- **Article details** with a preview of the first page, clickable DOI/URL, keywords, tag groups,
+  abstract and your comments.
+- **PDF handling**: open the PDF (double-click, Enter or *Open PDF*), attach a PDF with any file name,
+  link a whole folder of PDFs at once, list articles without a PDF.
+- **Maintenance**: find and merge duplicates (same DOI or title), statistics, export all articles
+  or only the current list to BibTeX, several libraries (*Library › Open / New*).
+- Safe by design: confirmations before deleting, PDF files are never deleted, the database is
+  upgraded with an automatic backup.
 
+## Installation
+
+Requires Python 3.9 or newer.
+
+```bash
+git clone https://github.com/AlsammanAlsamman/SciLibra.git
+cd SciLibra
+python3 -m venv .venv
+.venv/bin/pip install -e .          # Windows: .venv\Scripts\pip install -e .
 ```
+
+## Running
+
+```bash
+.venv/bin/scilibra                  # or: .venv/bin/python -m scilibra
+.venv/bin/scilibra path/to/other-library.db
+.venv/bin/scilibra --help
+```
+
+Your library is stored in `~/.local/share/scilibra/library.db` (Windows: `%APPDATA%\SciLibra`,
+macOS: `~/Library/Application Support/SciLibra`). Set `SCILIBRA_HOME` to use another folder.
+
+**Coming from SciLibra 1.x?** On the first start, an existing `scilibraLibrary.db` in the current folder
+or the project folder is copied to the location above and upgraded (the original file is not changed,
+and a backup of the pre-upgrade copy is kept next to it).
+
+### Desktop shortcut (Linux)
+
+Edit the paths in `SciLibra.desktop`, then:
+
+```bash
+cp SciLibra.desktop ~/.local/share/applications/
+```
+
+## Quick start
+
+1. **Add › Import BibTeX file** (or **Add › Add PDF files**).
+2. If your PDFs are elsewhere: **Library › Link PDF folder** — PDFs named `<key>.pdf` in that folder
+   (and sub-folders) are connected to their articles. For other file names use **Attach PDF...**.
+3. Choose **Group by › Keywords** (or Tag groups, Authors, ...) and click a group to open it.
+4. Select an article to see its details; double-click it to open the PDF.
+
+Keyboard: `Ctrl+F` search · `Ctrl+L` filter · `Ctrl+I` import BibTeX · `Ctrl+N` new article ·
+`Ctrl+E` edit · `Ctrl+O`/`Enter` open PDF · `↑`/`↓` move · `Esc` back.
+
+### Example BibTeX entry
+
+```bibtex
 @article{alsamman2023alignstatplot,
   title={AlignStatPlot: An R package and online tool for robust sequence alignment statistics and innovative visualization of big data},
-  author={Alsamman, Alsamman M and El Allali, Achraf and Mokhtar, Morad M and Al-Sham’aa, Khaled and Nassar, Ahmed E and Mousa, Khaled H and Kehel, Zakaria},
+  author={Alsamman, Alsamman M and El Allali, Achraf and Mokhtar, Morad M and Kehel, Zakaria},
   journal={PloS one},
   volume={18},
   number={9},
   pages={e0291204},
   year={2023},
-  publisher={Public Library of Science San Francisco, CA USA},
-  taggroups = {Agricultural drainage,Artificial intelligence,Deep learning,Drainage water,Groundwater,Machine learning,Water quality},
+  taggroups={Bioinformatics, Tools},
 }
 ```
 
-The PDF file name should be the same as the BibTeX key, in this case, the PDF file name should be "alsamman2023alignstatplot.pdf"
+`taggroups` are your own groups (e.g. *to-read*, *thesis chapter 2*). With the PDF saved as
+`alsamman2023alignstatplot.pdf`, *Link PDF folder* connects it automatically.
 
-### Key Features
-- **Import Articles**: Effortlessly import scientific articles from BibTeX files, simplifying the process of building and maintaining your library.
+## Development
 
-- **Article Clustering**: Seamlessly categorize your articles by various criteria such as title, author, year, journal, tag groups, and keywords. This intuitive clustering system enhances your ability to locate and manage specific articles efficiently.
+```bash
+.venv/bin/pip install -e ".[test]"
+.venv/bin/python -m pytest              # core tests + end-to-end GUI scenario (needs a display)
+.venv/bin/python tests/gui_scenario.py shots/   # run the GUI scenario and keep screenshots
+```
 
-- **Cross-Platform**: Developed using the Kivy framework, SciLibra is designed to be a cross-platform solution. You can enjoy its functionality on both mobile and desktop devices, ensuring accessibility wherever you go.
+Project layout:
 
-- **Detailed Article Insights**: Dive deep into your articles by accessing detailed information and abstracts, allowing you to make informed decisions when working on your research.
+```
+scilibra/
+  core/            GUI-independent logic (usable from scripts)
+    models.py      Article data model
+    database.py    SQLite storage, schema upgrades (compatible with 1.x libraries)
+    bibtex.py      BibTeX import/export
+    pdf.py         first-page previews, DOI detection (PyMuPDF)
+    crossref.py    DOI -> metadata (Crossref REST API)
+    library.py     high-level operations: import, link PDFs, search, duplicates, statistics
+  gui/             Kivy user interface (app.py, dialogs.py, editor.py, layout.kv)
+  config.py        settings and data locations
+tests/             pytest suite and GUI scenario
+```
 
-### Mobile and Desktop Compatibility
-SciLibra has been developed with flexibility in mind. It's not only a powerful desktop application but also a mobile-friendly tool. Whether you're on the move or at your desk, SciLibra adapts to your needs, providing a seamless experience for managing your scientific literature.
+Using the core from Python:
 
-Empower yourself as a researcher or academic, stay organized, save time, and enhance your research productivity with SciLibra. Give it a try, and experience the convenience of an all-in-one solution for scientific article management.
+```python
+from scilibra.core import Library
+lib = Library("my.db")
+lib.import_bibtex_file("refs.bib")
+print(lib.search("GWAS").keys)
+lib.export_bibtex("out.bib")
+```
 
-## Requirements
-To run SciLibra, make sure you have Python, Kivy, and pylatexenc installed on your system. Refer to the "Requirements" section in this README for installation instructions.
+## About the author
 
-
-
-## About Author
 - **Created by:** Alsamman M. Alsamman
 - **Emails:** smahmoud [at] ageri.sci.eg, A.Alsamman [at] cgiar.org, SammanMohammed [at] gmail.com
 - **License:** [MIT License](https://opensource.org/licenses/MIT)
-- **Disclaimer:** The script comes with no warranty, use at your own risk
-- **This script is not intended for commercial use**
-
-## Usage
-
-python SciLibra.py
-
+- **Disclaimer:** the software comes with no warranty, use at your own risk.
+- **This software is not intended for commercial use.**

@@ -1,0 +1,38 @@
+[build-system]
+requires = ["setuptools>=64"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "scilibra"
+dynamic = ["version"]
+description = "Desktop manager for scientific articles: BibTeX + PDF library with grouping, search and Crossref import"
+readme = "README.md"
+license = { text = "MIT" }
+authors = [{ name = "Alsamman M. Alsamman" }]
+requires-python = ">=3.9"
+dependencies = [
+    "kivy>=2.3",
+    "bibtexparser>=1.4,<2",
+    "pylatexenc>=2.10",
+    "pymupdf>=1.23",
+    "requests>=2.28",
+]
+
+[project.optional-dependencies]
+test = ["pytest>=7"]
+
+[project.scripts]
+scilibra = "scilibra.__main__:main"
+
+[tool.setuptools.dynamic]
+version = { attr = "scilibra.__version__" }
+
+[tool.setuptools.packages.find]
+include = ["scilibra*"]
+
+[tool.setuptools.package-data]
+scilibra = ["gui/*.kv", "assets/*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+filterwarnings = ["ignore::DeprecationWarning", "ignore:.*deprecated.*"]
