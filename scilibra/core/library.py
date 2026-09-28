@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 import logging
 import os
 import re
@@ -35,6 +36,7 @@ SEARCH_FIELDS = {
     "Comments": "comment",
     "Key": "ID",
     "DOI": "doi",
+    "PDF annotations": "pdfannotations",
 }
 
 
@@ -325,6 +327,90 @@ class Library:
             if progress:
                 progress(i + 1, len(todo))
         return made
+
+    # ------------------------------------------------------------------ PDF annotations
+    def annotations(self, key: str, refresh: bool = False) -> list[pdf.Annotation]:
+        """Sticky notes, highlights etc. of the article's PDF (cached until the PDF changes)."""
+        article = self.db.get(key)
+        if article is None or not article.has_pdf:
+            return []
+        path = os.path.abspath(article.pdf_path)
+        mtime = os.path.getmtime(path)
+        rows = None if refresh else self.db.cached_annotations(key, path, mtime)
+        if rows is not None:
+            return [pdf.Annotation(page=p, kind=k, text=t or "", note=n or "", author=a or "",
+                                   color=tuple(json.loads(c or "[]")), rect=tuple(json.loads(r or "[]")))
+                    for p, k, t, n, a, c, r in rows]
+        found = pdf.extract_annotations(path)
+        self.db.store_annotations(key, path, mtime, [
+            (a.page, a.kind, a.text, a.note, a.author, json.dumps(list(a.color)), json.dumps(list(a.rect)))
+            for a in found])
+        return found
+
+    def annotations_to_comments(self, key: str) -> int:
+        """Save the PDF annotations as comments (skipping ones already saved). Returns how many were added."""
+        added = 0
+        for annotation in self.annotations(key):
+            if annotation.text or annotation.note:
+                added += self.add_comment(key, annotation.as_comment())
+        return added
+
+    def index_annotations(self, progress=None, cancelled=lambda: False) -> dict[str, int]:
+        """Read the annotations of every PDF (so that search covers them). Returns {key: count} for PDFs with any."""
+        articles = [a for a in self.articles() if a.has_pdf]
+        found = {}
+        for i, article in enumerate(articles):
+            if cancelled():
+                break
+            count = len(self.annotations(article.key))
+            if count:
+                found[article.key] = count
+            if progress:
+                progress(i + 1, len(articles), article.key)
+        return found
+
+    def citation(self, key: str) -> str:
+        """Short in-text citation, e.g. "Xu et al., 2024"."""
+        a = self.db.get(key)
+        if a is None:
+            return key
+        return ", ".join(p for p in (a.short_authors, a.year) if p) or a.key
+
+    def annotations_markdown(self, keys) -> str:
+        """Notes and highlights of the given articles as Markdown (for literature reviews)."""
+        parts = []
+        for article in self.articles(list(keys)):
+            found = self.annotations(article.key)
+            if not found and not article.comments:
+                continue
+            head = f"## {article.title or article.key}\n\n"
+            ref = ", ".join(p for p in (article.author_string.replace(" and ", "; "), article.year,
+                                        f"*{article.journal}*" if article.journal else "") if p)
+            head += (ref + "  \n" if ref else "") + f"Key: `{article.key}`"
+            if article.doi:
+                head += f" · https://doi.org/{article.doi}"
+            lines = [head, ""]
+            for a in found:
+                quote = f"\u201c{a.text}\u201d" if a.text else ""
+                note = f" \u2014 {a.note}" if a.note and quote else a.note
+                lines.append(f"- **p. {a.page}, {a.label}**: {quote}{note}".rstrip())
+            if article.comments:
+                lines += ["", "Comments:"] + [f"- {c}" for c in article.comments]
+            parts.append("\n".join(lines))
+        return "# Reading notes\n\n" + "\n\n".join(parts) + "\n" if parts else ""
+
+    def last_page(self, key: str) -> int:
+        try:
+            return max(1, int(self.db.get_property("lastpage:" + key) or 1))
+        except ValueError:
+            return 1
+
+    def set_last_page(self, key: str, page: int):
+        self.db.set_property("lastpage:" + key, int(page))
+
+    def annotated_keys(self) -> list[str]:
+        """Articles whose PDF has annotations (among the PDFs indexed so far)."""
+        return list(self.db.annotation_counts())
 
     # ------------------------------------------------------------------ browse & search
     def groups(self, table: str) -> list[tuple[str, int]]:

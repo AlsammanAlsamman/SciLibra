@@ -29,13 +29,14 @@ from kivy.uix.recycleview.views import RecycleDataViewBehavior
 from kivy.utils import escape_markup
 
 from .. import __version__
-from ..config import Settings, resolve_library_path
+from ..config import Settings, data_dir, resolve_library_path
 from ..core import bibtex, crossref
 from ..core.library import GROUP_FIELDS, SEARCH_FIELDS, Library
 from ..core.models import Article
 from . import theme
 from .dialogs import ConfirmDialog, FileDialog, MessageDialog, ProgressDialog, TextDialog, ValuePicker
 from .editor import ArticleEditor
+from .viewer import PdfViewer, fill_annotation_list
 
 log = logging.getLogger(__name__)
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -104,6 +105,8 @@ class SciLibraApp(App):
     d_has_pdf = BooleanProperty(False)
     d_comments = ListProperty([])
     d_thumb = ObjectProperty(None, allownone=True)
+    d_annotations = ListProperty([])
+    d_annotations_info = StringProperty("")
 
     def __init__(self, library_path: str = "", **kwargs):
         super().__init__(**kwargs)
@@ -315,6 +318,8 @@ class SciLibraApp(App):
             self.d_has_pdf = False
             self.d_comments = []
             self.d_thumb = None
+            self.d_annotations = []
+            self.d_annotations_info = ""
         else:
             self._show_details(article)
         if self.root:
@@ -361,6 +366,31 @@ class SciLibraApp(App):
             self.d_pdf = "[color=ffb060]No PDF attached[/color]"
         self.d_comments = list(a.comments)
         self.d_thumb = self._texture(self.library.thumbnail(a.key))
+        self._load_annotations(a)
+
+    def _load_annotations(self, a: Article):
+        """Read the PDF's annotations in the background (cached after the first time)."""
+        self.d_annotations = []
+        if not a.has_pdf:
+            self.d_annotations_info = ""
+            return
+        self.d_annotations_info = "Reading highlights and notes in the PDF..."
+        key, library = a.key, self.library
+
+        def work():
+            try:
+                found = library.annotations(key)
+            except Exception:
+                log.exception("Cannot read annotations")
+                found = []
+            show(found)
+
+        @mainthread
+        def show(found):
+            if self.selected_key == key:
+                self.d_annotations = found
+                self.d_annotations_info = "" if found else "No highlights or notes in the PDF."
+        threading.Thread(target=work, daemon=True).start()
 
     @staticmethod
     def _texture(data):
@@ -395,8 +425,110 @@ class SciLibraApp(App):
             self.confirm("PDF not found", "This article has no PDF file linked (or the file was moved).\n\n"
                          "Do you want to choose the PDF now?", self.attach_pdf, confirm_text="Choose PDF...")
             return
-        open_with_system(a.pdf_path)
+        self.open_viewer(a)
+
+    def open_viewer(self, a: Article, page: int | None = None, focus_annotation: int | None = None):
+        """Show the PDF in the built-in viewer / annotator (reopens at the last page read)."""
+        key, library = a.key, self.library
+
+        def closed(viewer):
+            library.set_last_page(key, viewer.page)
+            if viewer.modified:
+                library.annotations(key, refresh=True)
+            if self.selected_key == key:
+                self.select_article(key)
+
+        viewer = PdfViewer(a.pdf_path, title=a.title or a.key, start_page=page or library.last_page(key))
+        viewer.citation = library.citation(key)
+        viewer.backup_dir = os.path.join(data_dir(), "pdf-backups")
+        viewer.external_callback = lambda: open_with_system(a.pdf_path)
+        viewer.comment_callback = lambda text: library.add_comment(key, text)
+        viewer.export_callback = lambda: self.export_notes([key])
+        viewer.closed_callback = closed
+        if focus_annotation is not None:
+            Clock.schedule_once(lambda _dt: viewer.show_annotation(focus_annotation)
+                                if focus_annotation < len(viewer.annotations) else None, 0.3)
+        viewer.open()
         self.set_status(f"Opened {os.path.basename(a.pdf_path)}")
+
+    def export_notes(self, keys=None):
+        """Save highlights, notes and comments as Markdown (for literature reviews)."""
+        if keys is None:
+            keys = [r["key"] for r in self.root.ids.rv.data if r["kind"] == "article"]
+        if not keys:
+            self.message("Export notes", "The list does not show any articles.")
+            return
+        library = self.library
+
+        def work(progress):
+            progress.update(0, 1, "Collecting notes and highlights...")
+            return library.annotations_markdown(keys)
+
+        def done(text):
+            if not text:
+                self.message("Export notes", "These articles have no highlights, notes or comments yet.")
+                return
+
+            def chosen(path, _folder):
+                if not path.lower().endswith(".md"):
+                    path += ".md"
+                with open(path, "w", encoding="utf-8") as fh:
+                    fh.write(text)
+                self.set_status(f"Notes saved to {path}")
+                self.message("Export notes", f"Notes and highlights were saved to\n{path}\n\n"
+                                             "Open it in any text editor, Obsidian, Word (via pandoc)...")
+            name = (keys[0] if len(keys) == 1 else "reading-notes") + ".md"
+            FileDialog(title="Save notes as Markdown", mode="save", filename=name, filters=["*.md"],
+                       path=self.settings.start_folder(), confirm_text="Save",
+                       callback=self._remember_folder(chosen)).open()
+        self.run_in_background("Exporting notes", work, done)
+
+    def open_external(self):
+        a = self._need_selection()
+        if a and a.has_pdf:
+            open_with_system(a.pdf_path)
+        elif a:
+            self.open_pdf()
+
+    def show_annotation(self, index):
+        a = self.library.get(self.selected_key)
+        if a and a.has_pdf and index < len(self.d_annotations):
+            self.open_viewer(a, page=self.d_annotations[index].page, focus_annotation=index)
+
+    def annotations_to_comments(self):
+        a = self._need_selection()
+        if not a:
+            return
+        added = self.library.annotations_to_comments(a.key)
+        self.select_article(a.key)
+        self.set_status(f"{added} annotations saved as comments" if added
+                        else "All annotations are already saved as comments")
+
+    def index_annotations(self):
+        library = self.library
+
+        def work(progress):
+            return library.index_annotations(
+                progress=lambda i, n, key: progress.update(i, n, f"Reading annotations {i}/{n}: {key}"),
+                cancelled=lambda: progress.cancelled)
+
+        def done(found):
+            total = sum(found.values())
+            self.message("PDF annotations", f"{len(found)} PDFs contain {total} highlights / notes.\n\n"
+                         "They are now included when you search (Search options › PDF annotations).\n"
+                         "Library › Articles with annotations lists these articles.")
+            if found:
+                self.show_view(View("articles", f"With annotations ({len(found)})", keys=list(found)))
+        self.run_in_background("Reading PDF annotations", work, done)
+
+    def show_annotated(self):
+        keys = self.library.annotated_keys()
+        if not keys:
+            self.confirm("Articles with annotations", "No annotated PDFs are known yet.\n\n"
+                         "Read the annotations of all PDFs now? (This can take a minute for a large library.)",
+                         self.index_annotations, confirm_text="Read all PDFs")
+            return
+        self.show_view(View("articles", f"With annotations ({len(keys)})", keys=keys))
 
     def open_folder(self):
         a = self._need_selection()
@@ -740,6 +872,10 @@ class SciLibraApp(App):
         else:
             getattr(self, action)()
 
+    def on_d_annotations(self, _inst, annotations):
+        if self.root:
+            fill_annotation_list(self.root.ids.annotations_box, annotations, self.show_annotation)
+
     def on_d_comments(self, _inst, comments):
         if not self.root:
             return
@@ -854,12 +990,15 @@ MENUS = {
     "library": [
         ("Link PDF folder...", "link_pdf_folder"),
         ("Articles without PDF", "show_missing_pdfs"),
+        ("Articles with PDF annotations", "show_annotated"),
+        ("Read annotations of all PDFs...", "index_annotations"),
         ("Find duplicates...", "find_duplicates"),
         ("Create missing previews", "refresh_thumbnails"),
         ("Statistics", "show_statistics"),
         (None, None),
         ("Export all to BibTeX...", "export_bibtex"),
         ("Export this list to BibTeX...", "export_view"),
+        ("Export notes & highlights of this list (Markdown)...", "export_notes"),
         (None, None),
         ("Open another library...", "open_library_file"),
         ("New empty library...", "new_library_file"),
@@ -886,13 +1025,27 @@ Finding articles
     terms with ';' (any term matches, or tick "All terms" in Search options).
 
 Working with an article
-  • Open PDF (or Enter / double-click), Attach PDF, Edit, Copy BibTeX, Delete.
+  • Open PDF (or Enter / double-click) shows it in the built-in reader, at the page where you stopped.
+    Scroll, zoom (Ctrl+wheel, +/-, Fit), go to a page, find text (Ctrl+F), table of contents, Night mode.
+    "External" opens it in your usual PDF application instead.
+  • Annotate in the reader (saved inside the PDF, visible in any PDF reader; the original is backed up
+    before the first change):
+      Highlight (H), Underline (U), Strike (S): drag over text   ·  Note (N): click to add a sticky note
+      Text box (B), Draw (D), Rect (R), Circle (O), Arrow (A)    ·  Eraser (E): click an annotation
+      Select (V): click an annotation to edit its note/colour or delete it  ·  Ctrl+Z: undo
+      Text (T): select text, then Copy, Copy + citation ("..." (Xu et al., 2024, p. 5)), highlight it,
+      or save it as a comment.  Colours: pick one of the swatches before annotating.
+  • Notes panel: every highlight and note, click to jump there; "Export notes" writes Markdown.
+  • Highlights & notes: the annotations you made in the PDF are listed under the details. Click one
+    to jump to it in the viewer; "Save as comments" copies them to the article's comments.
+  • Attach PDF, Edit, Copy BibTeX, Delete.
   • Comments - type in the box under the details and press Add.
   • Edit › Pick... - choose keywords / tag groups from the ones already used in the library.
 
 Library menu
   • Link PDF folder - connects PDFs named <key>.pdf in a folder (and sub-folders) to articles.
-  • Articles without PDF, Find duplicates, Statistics, Export BibTeX, Create previews.
+  • Articles without PDF, Articles with PDF annotations, Read annotations of all PDFs (makes them
+    searchable), Find duplicates, Statistics, Export BibTeX, Create previews.
 
 Keyboard
   Ctrl+F search · Ctrl+L filter list · Ctrl+I import BibTeX · Ctrl+N new article

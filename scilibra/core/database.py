@@ -42,6 +42,10 @@ LIST_TABLES = {"authors": "author", "keywords": "keywords", "taggroups": "taggro
 # Single-valued attribute -> sub table (kept for grouping and 1.x compatibility)
 SINGLE_TABLES = {"title": "title", "year": "year", "journal": "journal"}
 SUB_TABLES = list(LIST_TABLES.values()) + list(SINGLE_TABLES.values())
+# Cache of annotations read from the PDFs (the PDF file stays the source of truth).
+ANNOTATION_TABLES = ["pdfannotations", "pdfannotationstate"]
+# Every table holding per-article rows (used when deleting or renaming articles)
+ARTICLE_TABLES = ["articles", "firstpageimages"] + SUB_TABLES + ANNOTATION_TABLES
 
 DEFAULT_PROPERTIES = {
     "clusteringcategory": "keywords",
@@ -92,10 +96,15 @@ class Database:
         tables = self._tables()
         if "articles" not in tables:
             self._create_schema()
-            return
-        version = int(self.get_property("schemaversion") or 1)
-        if version < SCHEMA_VERSION:
-            self._migrate(version)
+        else:
+            version = int(self.get_property("schemaversion") or 1)
+            if version < SCHEMA_VERSION:
+                self._migrate(version)
+        with self.transaction() as c:
+            c.execute("CREATE TABLE IF NOT EXISTS pdfannotations (ID text, page integer, kind text, "
+                      "text text, note text, author text, color text, rect text)")
+            c.execute("CREATE TABLE IF NOT EXISTS pdfannotationstate (ID text, pdfpath text, mtime real)")
+            c.execute("CREATE INDEX IF NOT EXISTS idx_pdfannotations_id ON pdfannotations(ID)")
 
     def _create_schema(self):
         with self.transaction() as c:
@@ -243,13 +252,13 @@ class Database:
 
     def rename(self, old_key: str, new_key: str):
         with self.transaction() as c:
-            for table in ["articles", "firstpageimages"] + SUB_TABLES:
+            for table in ARTICLE_TABLES:
                 c.execute(f"UPDATE {table} SET ID=? WHERE ID=?", (new_key, old_key))
 
     def delete(self, keys):
         keys = list(keys)
         with self.transaction() as c:
-            for table in ["articles", "firstpageimages"] + SUB_TABLES:
+            for table in ARTICLE_TABLES:
                 c.executemany(f"DELETE FROM {table} WHERE ID=?", [(k,) for k in keys])
             self.set_property("lastmodificationdate", now(), c)
 
@@ -337,7 +346,39 @@ class Database:
     def distinct_values(self, table: str) -> list[str]:
         return [v for v, _ in self.group_counts(table)]
 
+    # ------------------------------------------------------------------ PDF annotation cache
+    def cached_annotations(self, key: str, pdfpath: str, mtime: float):
+        """Cached annotation rows if they were read from this PDF version, else None."""
+        state = self._query("SELECT pdfpath, mtime FROM pdfannotationstate WHERE ID=?", (key,))
+        if not state or state[0][0] != pdfpath or abs((state[0][1] or 0) - mtime) > 1e-6:
+            return None
+        return self._query("SELECT page, kind, text, note, author, color, rect FROM pdfannotations "
+                           "WHERE ID=? ORDER BY rowid", (key,))
+
+    def store_annotations(self, key: str, pdfpath: str, mtime: float, rows):
+        with self.transaction() as c:
+            c.execute("DELETE FROM pdfannotations WHERE ID=?", (key,))
+            c.execute("DELETE FROM pdfannotationstate WHERE ID=?", (key,))
+            c.executemany("INSERT INTO pdfannotations VALUES (?, ?, ?, ?, ?, ?, ?, ?)", [(key, *r) for r in rows])
+            c.execute("INSERT INTO pdfannotationstate VALUES (?, ?, ?)", (key, pdfpath, mtime))
+
+    def clear_annotations(self, key: str):
+        with self.transaction() as c:
+            for table in ANNOTATION_TABLES:
+                c.execute(f"DELETE FROM {table} WHERE ID=?", (key,))
+
+    def annotation_counts(self) -> dict[str, int]:
+        return dict(self._query("SELECT ID, COUNT(*) FROM pdfannotations GROUP BY ID"))
+
+    def indexed_annotation_keys(self) -> set[str]:
+        return {r[0] for r in self._query("SELECT ID FROM pdfannotationstate")}
+
     def search_column(self, column: str, text: str) -> list[str]:
+        if column == "pdfannotations":
+            escaped = text.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+            return [r[0] for r in self._query(
+                "SELECT DISTINCT ID FROM pdfannotations WHERE text LIKE ? ESCAPE '\\' OR note LIKE ? ESCAPE '\\'",
+                (f"%{escaped}%", f"%{escaped}%"))]
         if column in SUB_TABLES:
             sql = f"SELECT DISTINCT ID FROM {column} WHERE articleData LIKE ? ESCAPE '\\'"
         elif column in ARTICLE_COLUMNS:

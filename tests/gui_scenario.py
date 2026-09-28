@@ -26,6 +26,7 @@ from kivy.uix.modalview import ModalView  # noqa: E402
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from tests.conftest import SAMPLE_BIB, make_pdf  # noqa: E402
+from tests.test_pdf_crossref_config import make_annotated_pdf  # noqa: E402
 
 OUT = os.path.abspath(sys.argv[1] if len(sys.argv) > 1 else "gui-shots")
 EXISTING = sys.argv[2] if len(sys.argv) > 2 else ""
@@ -37,6 +38,7 @@ from scilibra.gui.app import SciLibraApp  # noqa: E402
 from scilibra.gui.dialogs import (ConfirmDialog, FileDialog, MessageDialog, ProgressDialog,  # noqa: E402
                                   TextDialog, ValuePicker)
 from scilibra.gui.editor import ArticleEditor  # noqa: E402
+from scilibra.gui.viewer import PdfViewer  # noqa: E402
 
 LIB = os.path.join(WORK, "library.db")
 if EXISTING:
@@ -330,6 +332,286 @@ def s_attach_pdf():
     app.select_article("pasted2024")
 
 
+def s_annotations_in_details():
+    annotated = make_annotated_pdf(os.path.join(DATA, "annotated.pdf"))
+    app.library.set_pdf("alsamman2023alignstatplot", annotated)
+    app.select_article("alsamman2023alignstatplot")
+    for _ in range(20):  # read in the background
+        if app.d_annotations:
+            break
+        yield 0.2
+    assert [a.kind for a in app.d_annotations] == ["Highlight", "Text", "FreeText", "Underline"]
+    assert len(ids().annotations_box.children) == 4
+    yield FRAME
+    shot("annotations_in_details")
+    app.annotations_to_comments()
+    assert len(app.library.get("alsamman2023alignstatplot").comments) == 4
+    assert len(ids().comments_box.children) == 4
+    app.search("methods section")  # sticky note text is searchable
+    assert [r["key"] for r in rows()] == ["alsamman2023alignstatplot"]
+    app.go_back()
+
+
+def s_pdf_viewer():
+    app.select_article("alsamman2023alignstatplot")
+    app.open_pdf()
+    viewer = top(PdfViewer)
+    yield 0.6
+    assert viewer.page_count == 2 and viewer.page == 1
+    assert viewer.pages[0].texture is not None, "first page must be rendered"
+    corner = viewer.pages[0].texture.pixels[:4]
+    assert corner == b"\xff\xff\xff\xff", f"page background must be opaque white, got {corner!r}"
+    assert len(viewer.ids.annotation_list.children) == 4 and viewer.panel == "annotations"
+    shot("viewer")
+    viewer.next_page()
+    yield 0.4
+    assert viewer.page == 2 and viewer.pages[1].texture is not None
+    before = viewer.zoom
+    viewer.zoom_in()
+    yield 0.3
+    assert viewer.zoom > before and not viewer.fit_width
+    viewer.fit()
+    yield 0.3
+    assert viewer.fit_width
+    viewer.ids.search.text = "wheat"
+    viewer.search("wheat")
+    assert viewer.hit_count == 1 and viewer.page == 2
+    viewer.search("zzz-nothing")
+    assert viewer.hit_count == 0 and "not found" in viewer.status
+    viewer.ids.search.text = "association"
+    viewer.search("association")
+    yield FRAME
+    shot("viewer_search")
+    viewer.show_annotation(1)  # sticky note on page 1
+    yield 0.3
+    assert viewer.page == 1
+    key(281)  # PageDown inside the viewer
+    yield 0.2
+    assert viewer.page == 2
+    key(278)  # Home
+    yield 0.2
+    assert viewer.page == 1
+    viewer.save_all_as_comments()
+    assert "already saved" in viewer.status
+    key(27)  # Esc closes the viewer, not the app
+    yield 0.2
+    assert viewer not in popups() and app.root is not None
+
+
+class FakeTouch:
+    """Minimal stand-in for a mouse touch, used to drive the annotation tools."""
+
+    def __init__(self, x, y):
+        self.x, self.y, self.ox, self.oy = x, y, x, y
+        self.pos = (x, y)
+        self.button = "left"
+        self.is_mouse_scrolling = False
+
+    def move(self, x, y):
+        self.x, self.y, self.pos = x, y, (x, y)
+        return self
+
+
+def drag(viewer, page, p0, p1, steps=4):
+    """Drag on `page` from PDF point p0 to p1 with the active tool."""
+    touch = FakeTouch(*page.to_widget(*p0))
+    assert viewer.tool_down(page, touch)
+    for i in range(1, steps + 1):
+        t = i / steps
+        viewer.tool_move(page, touch.move(*page.to_widget(p0[0] + (p1[0] - p0[0]) * t, p0[1] + (p1[1] - p0[1]) * t)))
+    viewer.tool_up(page, touch)
+
+
+def s_annotate_in_viewer():
+    import pymupdf
+    from scilibra.core import annotate as ann
+    from scilibra.core.pdf import extract_annotations
+    path = os.path.join(DATA, "toannotate.pdf")
+    doc = pymupdf.open()
+    for n in range(3):
+        page = doc.new_page()
+        page.insert_text((72, 100), f"Section {n + 1}: Deep learning improves genomic prediction accuracy.")
+        page.insert_text((72, 115), "Results were validated in three independent wheat panels.")
+    doc.set_toc([[1, "Introduction", 1], [1, "Methods", 2], [2, "Statistics", 2], [1, "Results", 3]])
+    doc.save(path)
+    doc.close()
+    app.library.set_pdf("pasted2024", path)
+    app.select_article("pasted2024")
+    app.open_pdf()
+    viewer = top(PdfViewer)
+    yield 0.6
+    assert viewer.panel == "contents" and len(viewer.ids.toc_list.children) == 4
+    icons = [getattr(w, "icon", "|") for w in reversed(viewer.ids.tool_row.children)]
+    assert icons == ["select", "text", "|", "Highlight", "Underline", "StrikeOut", "|", "note", "textbox", "|",
+                     "draw", "shapes", "eraser", "|", "color", "undo"], icons
+    viewer.ids.toc_list.children[-2].dispatch("on_release")  # "Methods" (children are reversed)
+    yield 0.2
+    assert viewer.page == 2
+    viewer.go_to(1)
+    yield 0.4
+    page = viewer.pages[0]
+    words = ann.page_words(viewer.doc[0])
+    w = {x[4]: x for x in words}
+    mid = lambda word: ((w[word][0] + w[word][2]) / 2, (w[word][1] + w[word][3]) / 2)  # noqa: E731
+
+    viewer.tool = "Highlight"
+    drag(viewer, page, mid("learning"), mid("prediction"))
+    viewer.color_name = "Green"
+    viewer.tool = "Underline"
+    drag(viewer, page, mid("Results"), mid("validated"))
+    viewer.tool = "note"
+    drag(viewer, page, (400, 300), (400, 300), steps=1)
+    note_dialog = top(TextDialog)
+    note_dialog.ids.input.text = "Compare with Table 2"
+    note_dialog.confirm()
+    viewer.tool = "textbox"
+    drag(viewer, page, (72, 400), (300, 440))
+    box_dialog = top(TextDialog)
+    box_dialog.ids.input.text = "Key result"
+    box_dialog.confirm()
+    viewer.tool = "draw"
+    drag(viewer, page, (100, 500), (200, 540), steps=8)
+    viewer.tool = "Rectangle"
+    drag(viewer, page, (72, 600), (200, 680))
+    viewer.tool = "Arrow"
+    drag(viewer, page, (250, 700), (320, 640))
+    viewer.set_zoom(0.62)
+    viewer.panel = "annotations"
+    yield 0.8
+    shot("annotating")
+    viewer.fit()
+    yield 0.3
+    kinds = [a.kind for a in viewer.annotations]
+    assert kinds == ["Highlight", "Underline", "Text", "FreeText", "Ink", "Square", "Line"], kinds
+    assert viewer.annotations[0].text == "learning improves genomic prediction"
+    assert viewer.annotations[2].note == "Compare with Table 2"
+    # saved inside the PDF file (read back independently) and the original was backed up
+    on_disk = extract_annotations(path)
+    assert [a.kind for a in on_disk] == kinds
+    backups = os.listdir(os.path.join(os.environ["SCILIBRA_HOME"], "pdf-backups"))
+    assert any(b.endswith("toannotate.pdf") for b in backups)
+
+    viewer.undo()  # removes the arrow
+    assert [a.kind for a in viewer.annotations][-1] == "Square" and len(extract_annotations(path)) == 6
+    viewer.tool = "eraser"
+    rect = viewer.annotations[-1].rect
+    drag(viewer, page, ((rect[0] + rect[2]) / 2, rect[1] + 1), ((rect[0] + rect[2]) / 2, rect[1] + 1), steps=1)
+    assert "Square" not in [a.kind for a in viewer.annotations]
+
+    # toolbar menus (shapes, colours), hover hints and the Line tool
+    from kivy.uix.dropdown import DropDown
+    buttons = viewer._icon_buttons
+    menu = viewer._open_shapes(buttons["shapes"])
+    yield FRAME
+    shot("shapes_menu")
+    line_item = [w for w in menu.walk() if getattr(w, "text", "").startswith("Line")][0]
+    line_item.dispatch("on_release")
+    assert viewer.tool == "Line" and buttons["shapes"].icon == "Line" and buttons["shapes"].active
+    menu = viewer._open_colors(buttons["color"])
+    [w for w in menu.walk() if getattr(w, "text", "") == "Blue"][0].dispatch("on_release")
+    assert viewer.color_name == "Blue" and tuple(buttons["Highlight"].accent) == ann.COLORS["Blue"]
+    yield 0.2
+    assert not [w for w in Window.children if isinstance(w, DropDown)]
+    before = len(viewer.annotations)
+    drag(viewer, page, (300, 700), (500, 720))
+    assert viewer.annotations[-1].kind == "Line" and len(viewer.annotations) == before + 1
+    viewer.undo()
+    assert len(viewer.annotations) == before
+    viewer._on_mouse(None, buttons["StrikeOut"].to_window(*buttons["StrikeOut"].center))
+    assert viewer.status == "Strikethrough (S)" and buttons["StrikeOut"].hovered
+    viewer._on_mouse(None, (1, 1))
+    assert not buttons["StrikeOut"].hovered
+
+    # select tool: click the highlight, change its note and colour
+    viewer.tool = "select"
+    hl = viewer.annotations[0]
+    touch = FakeTouch(*page.to_widget((hl.rect[0] + hl.rect[2]) / 2, (hl.rect[1] + hl.rect[3]) / 2))
+    viewer.click_select(page, touch)
+    editor = top()
+    yield FRAME
+    shot("annotation_editor")
+    editor.ids.note.text = "Main claim"
+    editor.choose("Blue", ann.COLORS["Blue"])
+    editor.finish("save")
+    first = extract_annotations(path)[0]
+    assert first.note == "Main claim" and tuple(round(c, 2) for c in first.color) == ann.COLORS["Blue"]
+
+    # text selection: quote with citation, save as comment, highlight
+    viewer.tool = "text"
+    drag(viewer, page, mid("three"), mid("wheat"))
+    assert viewer.selection_text == "three independent wheat"
+    yield FRAME
+    shot("text_selection")
+    viewer.copy_selection(with_citation=True)
+    viewer.selection_to_comment()
+    assert app.library.get("pasted2024").comments[-1] == '[p. 1] \u201cthree independent wheat\u201d'
+    drag(viewer, page, mid("Deep"), mid("learning"))
+    viewer.markup_selection("Highlight")
+    assert viewer.selection_text == "" and len(viewer.annotations) == 6
+    # keyboard: tool shortcuts, Ctrl+Z, Esc drops the tool first
+    key(104, "h")
+    assert viewer.tool == "Highlight"
+    key(122, "z", ["ctrl"])
+    assert len(viewer.annotations) == 5
+    key(27)
+    assert viewer.tool == "select" and viewer in popups()
+    viewer.night = True
+    yield 0.4
+    shot("night_mode")
+    assert viewer.pages[0].texture.pixels[:4] == b"\x00\x00\x00\xff"
+    viewer.night = False
+    viewer.go_to(3)
+    yield 0.3
+    key(27)
+    yield 0.3
+    assert viewer not in popups()
+    # closing refreshes the details panel and remembers the page
+    for _ in range(20):
+        if len(app.d_annotations) == 5:
+            break
+        yield 0.2
+    assert len(app.d_annotations) == 5
+    assert app.library.last_page("pasted2024") == 3
+    app.open_pdf()
+    reopened = top(PdfViewer)
+    yield 0.5
+    assert reopened.page == 3
+    reopened.dismiss()
+
+
+def s_export_notes():
+    app.select_article("pasted2024")
+    app.export_notes(["pasted2024"])
+    yield BUSY
+    choose_in_file_dialog(folder=DATA, filename="notes")
+    close_all()
+    with open(os.path.join(DATA, "notes.md"), encoding="utf-8") as fh:
+        text = fh.read()
+    assert "Main claim" in text and "**p. 1, Highlight**" in text and "Compare with Table 2" in text
+
+
+def s_viewer_from_annotation_and_bad_pdf():
+    app.select_article("alsamman2023alignstatplot")
+    yield 0.5
+    app.show_annotation(3)  # underline on page 2
+    viewer = top(PdfViewer)
+    yield 0.8
+    assert viewer.page == 2
+    viewer.dismiss()
+    broken = os.path.join(DATA, "broken.pdf")
+    with open(broken, "wb") as fh:
+        fh.write(b"%PDF-1.4 this is not really a pdf")
+    app.library.set_pdf("doe2019renamed", broken)
+    app.select_article("doe2019renamed")
+    app.open_pdf()
+    viewer = top(PdfViewer)
+    yield 0.3
+    assert viewer.error and viewer.page_count == 0
+    viewer.dismiss()
+    app.library.update(app.library.get("doe2019renamed").__class__(**{
+        **app.library.get("doe2019renamed").__dict__, "folderpath": "", "pdffile": ""}))
+
+
 def s_add_pdfs():
     before = app.library.count()
     app.add_pdfs()
@@ -369,7 +651,7 @@ def s_link_folder():
 def s_missing_pdfs():
     app.show_missing_pdfs()
     keys = {r["key"] for r in rows()}
-    assert "pasted2024" in keys and "smith2020deep" not in keys
+    assert "doe2019renamed" in keys and "smith2020deep" not in keys and "pasted2024" not in keys
     yield FRAME
     shot("missing_pdfs")
     app.go_back()
@@ -500,7 +782,7 @@ def s_finish():
 
 STEPS = [s_start, s_import_bibtex, s_select_article, s_group_by_keywords, s_group_by_other_fields, s_keyboard, s_keyboard_events,
          s_edit_article, s_editor_validation_and_picker, s_comments, s_search, s_paste_bibtex, s_attach_pdf,
-         s_add_pdfs, s_link_folder, s_missing_pdfs, s_duplicates, s_statistics_help_about, s_menus, s_export,
+         s_annotations_in_details, s_pdf_viewer, s_annotate_in_viewer, s_export_notes, s_viewer_from_annotation_and_bad_pdf, s_add_pdfs, s_link_folder, s_missing_pdfs, s_duplicates, s_statistics_help_about, s_menus, s_export,
          s_new_article, s_delete_article, s_no_selection_messages, s_delete_all, s_finish]
 queue = list(STEPS)
 

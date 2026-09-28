@@ -136,3 +136,88 @@ def test_legacy_library_is_copied_on_first_start(tmp_path, monkeypatch):
     # second start: nothing is copied again
     assert config.resolve_library_path(config.Settings()) == (path, "")
     assert config.resolve_library_path(config.Settings(), explicit="x.db")[0] == os.path.abspath("x.db")
+
+
+def make_annotated_pdf(path):
+    import pymupdf
+    doc = pymupdf.open()
+    page = doc.new_page()
+    page.insert_text((72, 100), "Genome wide association studies are powerful.")
+    page.insert_text((72, 130), "Nothing to see on this line.")
+    hl = page.add_highlight_annot(page.search_for("association studies")[0])
+    hl.set_info(content="key idea", title="Samman")
+    hl.update()
+    page.add_text_annot((300, 300), "Check the methods section").update()
+    page.add_freetext_annot(pymupdf.Rect(72, 200, 300, 230), "My summary box").update()
+    page2 = doc.new_page()
+    page2.insert_text((72, 100), "Second page text about heat toler-")
+    page2.insert_text((72, 115), "ance in wheat.")
+    page2.add_underline_annot(page2.search_for("toler-")[0] | page2.search_for("ance in")[0]).update()
+    doc.save(path)
+    doc.close()
+    return str(path)
+
+
+def test_extract_annotations(tmp_path):
+    path = make_annotated_pdf(tmp_path / "a.pdf")
+    found = pdf.extract_annotations(path)
+    kinds = [(a.page, a.kind) for a in found]
+    assert kinds == [(1, "Highlight"), (1, "Text"), (1, "FreeText"), (2, "Underline")]
+    hl, note, box, under = found
+    assert (hl.text, hl.note, hl.author) == ("association studies", "key idea", "Samman")
+    assert note.note == "Check the methods section" and note.label == "Sticky note"
+    assert box.text == "My summary box" and box.label == "Text box"
+    assert "tolerance" in under.text  # hyphenated line break re-joined
+    assert hl.as_comment() == '[p. 1] Highlight: "association studies" - key idea'
+    assert pdf.extract_annotations(str(tmp_path / "missing.pdf")) == []
+
+
+def test_library_annotations_cache_search_and_comments(lib, tmp_path):
+    import os
+    import time
+    path = make_annotated_pdf(tmp_path / "k1.pdf")
+    lib.add(Article(key="k1", title="T", folderpath=str(tmp_path)))
+    lib.add(Article(key="k2", title="No PDF"))
+    assert len(lib.annotations("k1")) == 4 and lib.annotations("k2") == []
+    # cached: served from the database while the PDF is unchanged
+    assert lib.db.cached_annotations("k1", os.path.abspath(path), os.path.getmtime(path)) is not None
+    assert [a.text for a in lib.annotations("k1")][0] == "association studies"
+    assert lib.search("methods section", fields=["PDF annotations"]).keys == ["k1"]
+    assert lib.search("methods section", fields=["Title"]).keys == []
+    assert lib.annotated_keys() == ["k1"]
+    # saving as comments is idempotent
+    assert lib.annotations_to_comments("k1") == 4
+    assert lib.annotations_to_comments("k1") == 0
+    assert lib.get("k1").comments[0].startswith('[p. 1] Highlight: "association studies"')
+    # a changed PDF is read again
+    time.sleep(0.01)
+    make_pdf(tmp_path / "k1.pdf", "no annotations any more")
+    os.utime(path, (time.time() + 5, time.time() + 5))
+    assert lib.annotations("k1") == []
+    # index + rename + delete keep the cache consistent
+    make_annotated_pdf(tmp_path / "k1.pdf")
+    assert lib.index_annotations() == {"k1": 4}
+    a = lib.get("k1")
+    a.key = "k1new"
+    a.pdffile = "k1.pdf"
+    lib.update(a, old_key="k1")
+    assert lib.search("summary box", fields=["PDF annotations"]).keys == ["k1new"]
+    lib.delete(["k1new"])
+    assert lib.annotated_keys() == []
+
+
+def test_markdown_citation_and_last_page(lib, tmp_path):
+    make_annotated_pdf(tmp_path / "k1.pdf")
+    lib.add(Article(key="k1", title="Heat tolerance in wheat", authors=["Xu, Li", "Wang, J"], year="2024",
+                    journal="Nature", doi="10.1/x", folderpath=str(tmp_path), comments=["great methods"]))
+    lib.add(Article(key="k2", title="Nothing here"))
+    assert lib.citation("k1") == "Xu et al., 2024"
+    md = lib.annotations_markdown(["k1", "k2"])
+    assert md.startswith("# Reading notes") and "## Heat tolerance in wheat" in md
+    assert '- **p. 1, Highlight**: “association studies” — key idea' in md
+    assert "- **p. 1, Sticky note**: Check the methods section" in md
+    assert "- great methods" in md and "Nothing here" not in md
+    assert lib.annotations_markdown(["k2"]) == ""
+    assert lib.last_page("k1") == 1
+    lib.set_last_page("k1", 7)
+    assert lib.last_page("k1") == 7

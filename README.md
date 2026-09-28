@@ -22,8 +22,21 @@ authors, year or journal, search everything, write comments, and export clean Bi
   Several terms can be separated with `;` (any term, or all terms).
 - **Article details** with a preview of the first page, clickable DOI/URL, keywords, tag groups,
   abstract and your comments.
-- **PDF handling**: open the PDF (double-click, Enter or *Open PDF*), attach a PDF with any file name,
-  link a whole folder of PDFs at once, list articles without a PDF.
+- **Built-in PDF reader & annotator** (double-click, Enter or *Open PDF*):
+  - continuous scrolling, zoom (Ctrl+wheel, +/-, fit width), go to page, find text, table of contents,
+    night mode, and it reopens each paper at the page where you stopped;
+  - an icon toolbar like Word/Acrobat: **highlight, underline, strikethrough** text, **sticky notes**, **text boxes**, **pen**,
+    **shapes** (rectangle, ellipse, arrow, line), eraser, colour picker (6 colours), click an annotation to edit its note/colour
+    or delete it, undo (Ctrl+Z);
+  - select text to **copy it, copy it as a quote with citation** ("..." (Xu et al., 2024, p. 5)),
+    highlight it or save it as a comment;
+  - annotations are saved **inside the PDF** as standard PDF annotations, so Acrobat, Zotero, Okular,
+    etc. show them too. The original PDF is backed up (in the SciLibra data folder) before the first change.
+- **Your notes, everywhere**: highlights and sticky notes made in any PDF reader are shown with the
+  article, are searchable, can be saved as comments, and can be **exported to Markdown** (one article or a
+  whole list) for literature reviews.
+- **PDF handling**: attach a PDF with any file name, link a whole folder of PDFs at once,
+  list articles without a PDF, open in your usual PDF application.
 - **Maintenance**: find and merge duplicates (same DOI or title), statistics, export all articles
   or only the current list to BibTeX, several libraries (*Library › Open / New*).
 - Safe by design: confirmations before deleting, PDF files are never deleted, the database is
@@ -69,7 +82,11 @@ cp SciLibra.desktop ~/.local/share/applications/
 2. If your PDFs are elsewhere: **Library › Link PDF folder** — PDFs named `<key>.pdf` in that folder
    (and sub-folders) are connected to their articles. For other file names use **Attach PDF...**.
 3. Choose **Group by › Keywords** (or Tag groups, Authors, ...) and click a group to open it.
-4. Select an article to see its details; double-click it to open the PDF.
+4. Select an article to see its details; double-click it to read and annotate the PDF.
+
+In the reader, pick a tool (keyboard: **H** highlight, **U** underline, **S** strike, **N** note,
+**B** text box, **D** pen, **R** rectangle, **O** ellipse, **A** arrow, **L** line, **E** eraser, **T** select text,
+**V** select/scroll), pick a colour, and drag or click on the page. **Esc** returns to scrolling, then to the library.
 
 Keyboard: `Ctrl+F` search · `Ctrl+L` filter · `Ctrl+I` import BibTeX · `Ctrl+N` new article ·
 `Ctrl+E` edit · `Ctrl+O`/`Enter` open PDF · `↑`/`↓` move · `Esc` back.
@@ -108,10 +125,11 @@ scilibra/
     models.py      Article data model
     database.py    SQLite storage, schema upgrades (compatible with 1.x libraries)
     bibtex.py      BibTeX import/export
-    pdf.py         first-page previews, DOI detection (PyMuPDF)
+    pdf.py         first-page previews, DOI detection, reading annotations (PyMuPDF)
+    annotate.py    creating/editing annotations and saving them into the PDF
     crossref.py    DOI -> metadata (Crossref REST API)
     library.py     high-level operations: import, link PDFs, search, duplicates, statistics
-  gui/             Kivy user interface (app.py, dialogs.py, editor.py, layout.kv)
+  gui/             Kivy user interface (app.py, viewer.py, dialogs.py, editor.py, layout.kv)
   config.py        settings and data locations
 tests/             pytest suite and GUI scenario
 ```

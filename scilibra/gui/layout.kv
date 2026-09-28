@@ -351,6 +351,34 @@
                         text: app.d_body
                         on_ref_press: app.on_ref(args[1])
                         height: (self.texture_size[1] if app.selected_key else 0)
+                    BoxLayout:
+                        size_hint_y: None
+                        height: dp(30) if app.d_has_pdf else 0
+                        opacity: 1 if app.d_has_pdf else 0
+                        spacing: dp(8)
+                        TLabel:
+                            text: '[b]Highlights & notes in the PDF[/b]' + ('  ({})'.format(len(app.d_annotations)) if app.d_annotations else '')
+                            size_hint_y: None
+                            height: dp(30)
+                            valign: 'middle'
+                            text_size: self.size
+                        FlatButton:
+                            text: 'Save as comments'
+                            size_hint: None, None
+                            size: dp(150), dp(30) if app.d_annotations else 0
+                            opacity: 1 if app.d_annotations else 0
+                            disabled: not app.d_annotations
+                            font_size: '12sp'
+                            on_release: app.annotations_to_comments()
+                    MutedLabel:
+                        text: app.d_annotations_info if app.d_has_pdf else ''
+                        height: self.texture_size[1] if (app.d_has_pdf and app.d_annotations_info) else 0
+                    BoxLayout:
+                        id: annotations_box
+                        orientation: 'vertical'
+                        size_hint_y: None
+                        height: self.minimum_height
+                        spacing: dp(4)
                     TLabel:
                         text: '[b]Comments[/b]' if app.selected_key else ''
                         height: (self.texture_size[1] if app.selected_key else 0)
@@ -397,6 +425,10 @@
                     text: 'Copy BibTeX'
                     disabled: not app.selected_key
                     on_release: app.copy_bibtex()
+                FlatButton:
+                    text: 'External'
+                    disabled: not app.d_has_pdf
+                    on_release: app.open_external()
                 FlatButton:
                     text: 'Folder'
                     disabled: not app.d_has_pdf
@@ -880,3 +912,437 @@
                 size_hint_x: None
                 width: dp(110)
                 on_release: root.save()
+
+# ---------------------------------------------------------------- PDF viewer
+<PdfPage>:
+    canvas.before:
+        Color:
+            rgba: 0, 0, 0, 0.35
+        Rectangle:
+            pos: self.x + dp(3), self.y - dp(3)
+            size: self.size
+        Color:
+            rgba: 1, 1, 1, 1
+        Rectangle:
+            pos: self.pos
+            size: self.size
+            texture: self.texture
+
+<AnnotationItem>:
+    orientation: 'horizontal'
+    size_hint_y: None
+    height: max(dp(44), content.height + dp(14))
+    spacing: dp(8)
+    padding: 0, dp(7), dp(8), dp(7)
+    canvas.before:
+        Color:
+            rgba: theme.darker(theme.ROW, 0.04) if self.state == 'down' else theme.ROW
+        RoundedRectangle:
+            pos: self.pos
+            size: self.size
+            radius: [dp(4)]
+        Color:
+            rgba: root.swatch
+        Rectangle:
+            pos: self.x, self.y
+            size: dp(5), self.height
+    Widget:
+        size_hint_x: None
+        width: dp(4)
+    BoxLayout:
+        id: content
+        orientation: 'vertical'
+        size_hint_y: None
+        height: head.texture_size[1] + text.texture_size[1] + dp(4)
+        pos_hint: {'top': 1}
+        Label:
+            id: head
+            text: root.heading
+            color: theme.MUTED
+            font_size: '12sp'
+            bold: True
+            text_size: self.width, None
+            size_hint_y: None
+            height: self.texture_size[1]
+        Label:
+            id: text
+            text: root.body
+            color: theme.TEXT
+            font_size: '13sp'
+            text_size: self.width, None
+            size_hint_y: None
+            height: self.texture_size[1]
+
+<TocItem>:
+    size_hint_y: None
+    height: max(dp(30), lbl.texture_size[1] + dp(10))
+    padding: dp(8) + dp(14) * (root.level - 1), 0, dp(6), 0
+    canvas.before:
+        Color:
+            rgba: theme.darker(theme.ROW, 0.04) if self.state == 'down' else (theme.ROW if root.level == 1 else theme.PANEL)
+        RoundedRectangle:
+            pos: self.pos
+            size: self.size
+            radius: [dp(3)]
+    Label:
+        id: lbl
+        text: root.title
+        color: theme.TEXT if root.level == 1 else theme.MUTED
+        bold: root.level == 1
+        font_size: '13sp'
+        text_size: self.width, None
+        valign: 'middle'
+    Label:
+        text: str(root.page)
+        color: theme.MUTED
+        font_size: '12sp'
+        size_hint_x: None
+        width: dp(34)
+
+<ColorSwatch>:
+    size_hint: None, None
+    size: dp(26), dp(26)
+    canvas:
+        Color:
+            rgba: (1, 1, 1, 1) if self.selected else (0, 0, 0, 0)
+        RoundedRectangle:
+            pos: self.x - dp(2), self.y - dp(2)
+            size: self.width + dp(4), self.height + dp(4)
+            radius: [dp(6)]
+        Color:
+            rgba: list(self.rgb) + [1]
+        RoundedRectangle:
+            pos: self.pos
+            size: self.size
+            radius: [dp(5)]
+
+<AnnotationEditor>:
+    size_hint: 0.5, 0.6
+    BoxLayout:
+        orientation: 'vertical'
+        spacing: dp(8)
+        MutedLabel:
+            text: root.heading
+        TLabel:
+            text: ('\u201c' + root.marked_text + '\u201d') if root.marked_text else ''
+            markup: False
+            height: self.texture_size[1] if root.marked_text else 0
+        DarkInput:
+            id: note
+            text: root.note
+            hint_text: 'Your note (optional)'
+            multiline: True
+            size_hint_y: 1
+        BoxLayout:
+            id: swatches
+            size_hint_y: None
+            height: dp(34)
+            spacing: dp(10)
+            padding: dp(2), dp(4)
+        BoxLayout:
+            size_hint_y: None
+            height: dp(38)
+            spacing: dp(8)
+            DangerButton:
+                text: 'Delete'
+                size_hint_x: None
+                width: dp(100)
+                on_release: root.finish('delete')
+            Widget:
+            FlatButton:
+                text: 'Cancel'
+                size_hint_x: None
+                width: dp(100)
+                on_release: root.dismiss()
+            AccentButton:
+                text: 'Save'
+                size_hint_x: None
+                width: dp(100)
+                on_release: root.finish('save')
+
+<PdfViewer>:
+    size_hint: 1, 1
+    background: ''
+    background_color: theme.BG
+    overlay_color: 0, 0, 0, 0.6
+    BoxLayout:
+        orientation: 'vertical'
+        # navigation bar
+        BoxLayout:
+            size_hint_y: None
+            height: dp(50)
+            padding: dp(10), dp(7)
+            spacing: dp(6)
+            canvas.before:
+                Color:
+                    rgba: theme.PANEL
+                Rectangle:
+                    pos: self.pos
+                    size: self.size
+            FlatButton:
+                text: '< Library'
+                size_hint_x: None
+                width: dp(90)
+                on_release: root.dismiss()
+            Label:
+                text: root.title
+                color: theme.TEXT
+                bold: True
+                text_size: self.size
+                halign: 'left'
+                valign: 'middle'
+                shorten: True
+            FlatButton:
+                text: '<'
+                size_hint_x: None
+                width: dp(34)
+                on_release: root.previous_page()
+            DarkInput:
+                id: page_input
+                text: str(root.page)
+                input_filter: 'int'
+                halign: 'center'
+                size_hint_x: None
+                width: dp(54)
+                height: dp(36)
+                padding: dp(4), dp(8)
+                on_text_validate: root.go_to(int(self.text or 1))
+            Label:
+                text: '/ {}'.format(root.page_count)
+                color: theme.MUTED
+                size_hint_x: None
+                width: dp(44)
+            FlatButton:
+                text: '>'
+                size_hint_x: None
+                width: dp(34)
+                on_release: root.next_page()
+            FlatButton:
+                text: '-'
+                size_hint_x: None
+                width: dp(34)
+                on_release: root.zoom_out()
+            Label:
+                text: '{}%'.format(int(round(root.zoom * 100)))
+                color: theme.TEXT
+                size_hint_x: None
+                width: dp(50)
+            FlatButton:
+                text: '+'
+                size_hint_x: None
+                width: dp(34)
+                on_release: root.zoom_in()
+            FlatButton:
+                text: 'Fit'
+                bg: theme.ACCENT if root.fit_width else theme.BUTTON
+                size_hint_x: None
+                width: dp(50)
+                on_release: root.fit()
+            DarkInput:
+                id: search
+                hint_text: 'Find in PDF (Ctrl+F)'
+                size_hint_x: None
+                width: dp(180)
+                height: dp(36)
+                padding: dp(8), dp(8)
+                on_text_validate: root.search(self.text)
+            FlatButton:
+                text: '<'
+                size_hint_x: None
+                width: dp(30)
+                disabled: root.hit_count == 0
+                on_release: root.next_hit(-1)
+            FlatButton:
+                text: '>'
+                size_hint_x: None
+                width: dp(30)
+                disabled: root.hit_count == 0
+                on_release: root.next_hit(1)
+            FlatButton:
+                text: 'Night'
+                bg: theme.ACCENT if root.night else theme.BUTTON
+                size_hint_x: None
+                width: dp(60)
+                on_release: root.night = not root.night
+            FlatButton:
+                text: 'External'
+                size_hint_x: None
+                width: dp(78)
+                on_release: root.open_external()
+        # annotation tools
+        BoxLayout:
+            size_hint_y: None
+            height: dp(44)
+            padding: dp(10), dp(5)
+            spacing: dp(6)
+            canvas.before:
+                Color:
+                    rgba: theme.darker(theme.PANEL, 0.02)
+                Rectangle:
+                    pos: self.pos
+                    size: self.size
+            BoxLayout:
+                id: tool_row
+                size_hint_x: None
+                width: self.minimum_width
+                spacing: dp(3)
+            Widget:
+            FlatButton:
+                text: 'Notes ({})'.format(len(root.annotations))
+                bg: theme.ACCENT if root.panel == 'annotations' else theme.BUTTON
+                size_hint: None, None
+                size: dp(96), dp(32)
+                pos_hint: {'center_y': 0.5}
+                on_release: root.toggle_panel('annotations')
+            FlatButton:
+                text: 'Contents'
+                bg: theme.ACCENT if root.panel == 'contents' else theme.BUTTON
+                disabled: not root.toc
+                size_hint: None, None
+                size: dp(86), dp(32)
+                pos_hint: {'center_y': 0.5}
+                on_release: root.toggle_panel('contents')
+        # text selection actions
+        BoxLayout:
+            size_hint_y: None
+            height: dp(40) if root.selection_text else 0
+            opacity: 1 if root.selection_text else 0
+            disabled: not root.selection_text
+            padding: dp(10), dp(4)
+            spacing: dp(6)
+            canvas.before:
+                Color:
+                    rgba: 0.18, 0.28, 0.45, 1
+                Rectangle:
+                    pos: self.pos
+                    size: self.size
+            Label:
+                text: '\u201c' + root.selection_text + '\u201d'
+                color: theme.TEXT
+                font_size: '13sp'
+                text_size: self.size
+                halign: 'left'
+                valign: 'middle'
+                shorten: True
+            FlatButton:
+                text: 'Copy'
+                size_hint: None, None
+                size: dp(60), dp(30)
+                on_release: root.copy_selection()
+            FlatButton:
+                text: 'Copy + citation'
+                size_hint: None, None
+                size: dp(124), dp(30)
+                on_release: root.copy_selection(True)
+            FlatButton:
+                text: 'Highlight'
+                size_hint: None, None
+                size: dp(84), dp(30)
+                on_release: root.markup_selection('Highlight')
+            FlatButton:
+                text: 'Underline'
+                size_hint: None, None
+                size: dp(84), dp(30)
+                on_release: root.markup_selection('Underline')
+            FlatButton:
+                text: 'Save as comment'
+                size_hint: None, None
+                size: dp(128), dp(30)
+                on_release: root.selection_to_comment()
+            FlatButton:
+                text: 'x'
+                size_hint: None, None
+                size: dp(30), dp(30)
+                on_release: root.clear_selection()
+        BoxLayout:
+            ScrollView:
+                id: scroll
+                bar_width: dp(10)
+                scroll_type: ['bars', 'content']
+                scroll_wheel_distance: dp(60)
+                BoxLayout:
+                    id: pages
+                    orientation: 'vertical'
+                    size_hint: None, None
+                    width: max(self.minimum_width, scroll.width)
+                    height: self.minimum_height
+                    padding: dp(20)
+                    spacing: dp(14)
+            BoxLayout:
+                orientation: 'vertical'
+                size_hint_x: None
+                width: dp(330) if root.panel else 0
+                opacity: 1 if root.panel else 0
+                disabled: not root.panel
+                padding: dp(10)
+                spacing: dp(8)
+                canvas.before:
+                    Color:
+                        rgba: theme.PANEL
+                    Rectangle:
+                        pos: self.pos
+                        size: self.size
+                Label:
+                    text: ('Notes & highlights' if root.annotations else 'No annotations yet - use the tools above to highlight, add notes or draw.') if root.panel == 'annotations' else 'Contents'
+                    color: theme.TEXT
+                    bold: True
+                    text_size: self.width, None
+                    size_hint_y: None
+                    height: self.texture_size[1] + dp(6)
+                ScrollView:
+                    do_scroll_x: False
+                    bar_width: dp(6)
+                    size_hint_y: 1 if root.panel == 'annotations' else None
+                    height: 0 if root.panel != 'annotations' else self.height
+                    opacity: 1 if root.panel == 'annotations' else 0
+                    BoxLayout:
+                        id: annotation_list
+                        orientation: 'vertical'
+                        size_hint_y: None
+                        height: self.minimum_height
+                        spacing: dp(4)
+                ScrollView:
+                    do_scroll_x: False
+                    bar_width: dp(6)
+                    size_hint_y: 1 if root.panel == 'contents' else None
+                    height: 0 if root.panel != 'contents' else self.height
+                    opacity: 1 if root.panel == 'contents' else 0
+                    BoxLayout:
+                        id: toc_list
+                        orientation: 'vertical'
+                        size_hint_y: None
+                        height: self.minimum_height
+                        spacing: dp(2)
+                BoxLayout:
+                    size_hint_y: None
+                    height: dp(36) if root.panel == 'annotations' else 0
+                    opacity: 1 if root.panel == 'annotations' else 0
+                    spacing: dp(6)
+                    FlatButton:
+                        text: 'Save as comments'
+                        font_size: '13sp'
+                        disabled: not root.annotations or root.panel != 'annotations'
+                        on_release: root.save_all_as_comments()
+                    FlatButton:
+                        text: 'Export notes...'
+                        font_size: '13sp'
+                        disabled: root.panel != 'annotations'
+                        on_release: root.export_notes()
+        BoxLayout:
+            size_hint_y: None
+            height: dp(24)
+            padding: dp(12), 0
+            canvas.before:
+                Color:
+                    rgba: theme.PANEL
+                Rectangle:
+                    pos: self.pos
+                    size: self.size
+            Label:
+                text: root.error or root.status or 'PgUp/PgDn: pages  ·  Ctrl+wheel or +/-: zoom  ·  Ctrl+F: find  ·  hover a tool to see its name and shortcut  ·  Ctrl+Z: undo  ·  Esc: back'
+                color: theme.ERROR if root.error else theme.MUTED
+                font_size: '12sp'
+                text_size: self.size
+                halign: 'left'
+                valign: 'middle'
+                shorten: True
