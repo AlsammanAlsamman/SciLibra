@@ -12,6 +12,21 @@ from kivy.uix.recycleview.views import RecycleDataViewBehavior
 from kivy.uix.boxlayout import BoxLayout
 
 
+class Collapsible(BoxLayout):
+    """A container that can be hidden. While hidden it ignores all clicks, so that nothing inside it can
+    swallow clicks meant for the widgets that are visible in its place."""
+    shown = BooleanProperty(True)
+
+    def on_touch_down(self, touch):
+        return super().on_touch_down(touch) if self.shown else False
+
+    def on_touch_move(self, touch):
+        return super().on_touch_move(touch) if self.shown else False
+
+    def on_touch_up(self, touch):
+        return super().on_touch_up(touch) if self.shown else False
+
+
 class BasePopup(Popup):
     """Popup styled by the `<BasePopup>` rule in layout.kv."""
 

@@ -35,6 +35,10 @@ authors, year or journal, search everything, write comments, and export clean Bi
 - **Your notes, everywhere**: highlights and sticky notes made in any PDF reader are shown with the
   article, are searchable, can be saved as comments, and can be **exported to Markdown** (one article or a
   whole list) for literature reviews.
+- **Google Drive backup & sync**: sign in once (Google Drive button, top right - it turns green when
+  connected) and SciLibra backs up the library and every PDF (with your annotations) to a "SciLibra"
+  folder on your Drive, automatically after changes and when closing. *Restore from Drive* sets up the
+  same library on another computer. SciLibra only gets access to the files it creates (`drive.file`).
 - **PDF handling**: attach a PDF with any file name, link a whole folder of PDFs at once,
   list articles without a PDF, open in your usual PDF application.
 - **Maintenance**: find and merge duplicates (same DOI or title), statistics, export all articles
@@ -67,6 +71,20 @@ macOS: `~/Library/Application Support/SciLibra`). Set `SCILIBRA_HOME` to use ano
 **Coming from SciLibra 1.x?** On the first start, an existing `scilibraLibrary.db` in the current folder
 or the project folder is copied to the location above and upgraded (the original file is not changed,
 and a backup of the pre-upgrade copy is kept next to it).
+
+### Google Drive set-up (once)
+
+Google requires each app to have its own OAuth client. In SciLibra press **Google Drive** and follow
+the steps shown (about 5 minutes):
+
+1. Open [Google Cloud Console](https://console.cloud.google.com/apis/credentials) and create a project.
+2. *APIs & Services › Library*: enable **Google Drive API**.
+3. *OAuth consent screen*: choose *External*, fill in the app name and your e-mail, add yourself as a *test user*.
+4. *Credentials › Create credentials › OAuth client ID*, type **Desktop app**, then *Download JSON*.
+5. In SciLibra: **Load client file...**, then **Sign in with Google**.
+
+To give other users one-click sign-in, a maintainer can ship the client file as
+`scilibra/assets/google_client.json` (desktop-app client secrets are not confidential).
 
 ### Desktop shortcut (Linux)
 

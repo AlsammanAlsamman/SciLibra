@@ -122,7 +122,7 @@ class PdfPage(Widget):
             self.viewer.tool_up(self, touch)
             return True
         if self.viewer is not None and self.viewer.tool == "select" and self.collide_point(*touch.pos) \
-                and not touch.is_mouse_scrolling and touch.button in (None, "left") \
+                and not touch.is_mouse_scrolling and getattr(touch, "button", None) in (None, "left") \
                 and abs(touch.x - touch.ox) < dp(6) and abs(touch.y - touch.oy) < dp(6):
             self.viewer.click_select(self, touch)
         return super().on_touch_up(touch)
@@ -655,7 +655,7 @@ class PdfViewer(ModalView):
         self.status = f"{TOOLS[tool][0]}: {TOOLS[tool][2]}"
 
     def tool_down(self, page, touch):
-        if self.tool == "select" or self.doc is None or touch.button not in (None, "left"):
+        if self.tool == "select" or self.doc is None or getattr(touch, "button", None) not in (None, "left"):
             return False
         start = page.to_pdf(*touch.pos)
         self._drag = {"page": page, "start": start, "points": [start]}
@@ -846,9 +846,9 @@ class PdfViewer(ModalView):
     # ------------------------------------------------------------------ keyboard / mouse wheel
     def on_touch_down(self, touch):
         if touch.is_mouse_scrolling and "ctrl" in Window.modifiers and self.ids.scroll.collide_point(*touch.pos):
-            if touch.button == "scrollup":
+            if getattr(touch, "button", None) == "scrollup":
                 self.zoom_out()
-            elif touch.button == "scrolldown":
+            elif getattr(touch, "button", None) == "scrolldown":
                 self.zoom_in()
             return True
         return super().on_touch_down(touch)

@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from kivy.core.text.markup import MarkupLabel
-from kivy.graphics import Color, Line, Mesh, Rectangle, RoundedRectangle
+from kivy.graphics import Color, Ellipse, Line, Mesh, Rectangle, RoundedRectangle
 from kivy.metrics import dp, sp
 from kivy.properties import BooleanProperty, ListProperty, StringProperty
 from kivy.uix.behaviors import ButtonBehavior
@@ -123,6 +123,17 @@ def draw_icon(canvas, name, cx, cy, s, fg, accent):
         canvas.add(Color(*c))
         for x0, dy in ((cx - s * .36, s * .26), (cx - s * .2, s * .08), (cx - s * .2, -s * .1), (cx - s * .36, -s * .28)):
             canvas.add(Line(points=[x0, cy + dy, cx + s * .36, cy + dy], width=dp(1.2)))
+    elif name == "cloud":  # cloud (Google Drive)
+        canvas.add(Color(*c))
+        base = cy - s * .2
+        canvas.add(Rectangle(pos=(cx - s * .34, base), size=(s * .68, s * .16)))
+        canvas.add(Ellipse(pos=(cx - s * .42, base - s * .02), size=(s * .34, s * .34)))
+        canvas.add(Ellipse(pos=(cx - s * .2, base + s * .02), size=(s * .44, s * .46)))
+        canvas.add(Ellipse(pos=(cx + s * .1, base - s * .02), size=(s * .32, s * .32)))
+    elif name == "check":
+        canvas.add(Color(*c))
+        canvas.add(Line(points=[cx - s * .3, cy, cx - s * .08, cy - s * .24, cx + s * .32, cy + s * .24],
+                        width=dp(2)))
     elif name == "night":  # crescent moon
         canvas.add(Color(*c))
         canvas.add(Line(circle=(cx, cy, s * .3, 200, 520), width=lw))
@@ -179,3 +190,18 @@ class ToolSeparator(Widget):
         self.canvas.clear()
         self.canvas.add(Color(*theme.MUTED[:3], 0.35))
         self.canvas.add(Rectangle(pos=(self.center_x - dp(0.5), self.y + dp(6)), size=(dp(1), self.height - dp(12))))
+
+
+class Icon(Widget):
+    """A drawn icon without button behaviour (for labels and composite buttons)."""
+    icon = StringProperty("")
+    color = ListProperty([1, 1, 1, 1])
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.bind(pos=self.redraw, size=self.redraw, icon=self.redraw, color=self.redraw)
+        self.redraw()
+
+    def redraw(self, *_):
+        self.canvas.clear()
+        draw_icon(self.canvas, self.icon, self.center_x, self.center_y, min(self.size) * 0.9, self.color, self.color)

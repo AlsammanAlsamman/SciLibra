@@ -221,6 +221,8 @@
             size_hint_x: None
             width: dp(80)
             on_release: app.search_options()
+        DriveButton:
+            on_release: app.drive.open_dialog() if app.drive else None
 
     # body
     BoxLayout:
@@ -351,10 +353,11 @@
                         text: app.d_body
                         on_ref_press: app.on_ref(args[1])
                         height: (self.texture_size[1] if app.selected_key else 0)
-                    BoxLayout:
+                    Collapsible:
+                        shown: app.d_has_pdf
                         size_hint_y: None
-                        height: dp(30) if app.d_has_pdf else 0
-                        opacity: 1 if app.d_has_pdf else 0
+                        height: dp(30) if self.shown else 0
+                        opacity: 1 if self.shown else 0
                         spacing: dp(8)
                         TLabel:
                             text: '[b]Highlights & notes in the PDF[/b]' + ('  ({})'.format(len(app.d_annotations)) if app.d_annotations else '')
@@ -388,10 +391,11 @@
                         size_hint_y: None
                         height: self.minimum_height
                         spacing: dp(4)
-                    BoxLayout:
+                    Collapsible:
+                        shown: bool(app.selected_key)
                         size_hint_y: None
-                        height: dp(38) if app.selected_key else 0
-                        opacity: 1 if app.selected_key else 0
+                        height: dp(38) if self.shown else 0
+                        opacity: 1 if self.shown else 0
                         spacing: dp(8)
                         DarkInput:
                             id: comment_input
@@ -466,6 +470,165 @@
             valign: 'middle'
             shorten: True
             shorten_from: 'left'
+
+<DriveButton@ButtonBehavior+BoxLayout>:
+    size_hint: None, None
+    size: dp(150), dp(36)
+    pos_hint: {'center_y': 0.5}
+    padding: dp(8), 0
+    spacing: dp(6)
+    canvas.before:
+        Color:
+            rgba: ((0.16, 0.5, 0.28, 1) if app.drive_connected else theme.BUTTON) if self.state == 'normal' else theme.darker((0.16, 0.5, 0.28, 1) if app.drive_connected else theme.BUTTON, 0.08)
+        RoundedRectangle:
+            pos: self.pos
+            size: self.size
+            radius: [dp(5)]
+    Icon:
+        icon: 'cloud'
+        color: (0.75, 1, 0.8, 1) if app.drive_connected else theme.MUTED
+        size_hint_x: None
+        width: dp(26)
+    Label:
+        text: ('Syncing...' if app.drive_syncing else 'Drive: on') if app.drive_connected else 'Google Drive'
+        color: theme.TEXT
+        font_size: '14sp'
+        bold: app.drive_connected
+        text_size: self.size
+        halign: 'left'
+        valign: 'middle'
+
+<DriveDialog>:
+    size_hint: 0.7, 0.86
+    BoxLayout:
+        orientation: 'vertical'
+        spacing: dp(10)
+        # --- not set up yet
+        Collapsible:
+            orientation: 'vertical'
+            spacing: dp(10)
+            shown: root.state == 'setup'
+            size_hint_y: 1 if self.shown else None
+            height: 0 if not self.shown else 100
+            opacity: 1 if self.shown else 0
+            TLabel:
+                text: '[b]Back up your library and PDFs to Google Drive[/b]'
+                font_size: '16sp'
+            ScrollView:
+                do_scroll_x: False
+                TLabel:
+                    text: root.setup_steps
+                    markup: False
+            BoxLayout:
+                size_hint_y: None
+                height: dp(38)
+                spacing: dp(8)
+                FlatButton:
+                    text: 'Open Google Cloud Console'
+                    on_release: root.controller.open_console()
+                AccentButton:
+                    text: 'Load client file...'
+                    on_release: root.controller.load_client_file()
+        # --- ready to sign in
+        Collapsible:
+            orientation: 'vertical'
+            spacing: dp(14)
+            shown: root.state == 'signin'
+            size_hint_y: 1 if self.shown else None
+            height: 0 if not self.shown else 100
+            opacity: 1 if self.shown else 0
+            TLabel:
+                text: '[b]Connect SciLibra to your Google Drive[/b]'
+                font_size: '16sp'
+            TLabel:
+                text: 'Sign in with your Google account to back up this library and all its PDFs (with your highlights and notes) to a "SciLibra" folder on your Google Drive, and to restore them on another computer.\n\nSciLibra can only access the files it creates - never your other Drive files.'
+                color: theme.MUTED
+            Widget:
+            AccentButton:
+                text: 'Sign in with Google'
+                font_size: '16sp'
+                height: dp(46)
+                on_release: root.controller.sign_in()
+            FlatButton:
+                text: 'Use a different OAuth client file...'
+                on_release: root.controller.load_client_file()
+        # --- connected
+        Collapsible:
+            orientation: 'vertical'
+            spacing: dp(12)
+            shown: root.state == 'connected'
+            size_hint_y: 1 if self.shown else None
+            height: 0 if not self.shown else 100
+            opacity: 1 if self.shown else 0
+            BoxLayout:
+                size_hint_y: None
+                height: dp(44)
+                spacing: dp(10)
+                canvas.before:
+                    Color:
+                        rgba: 0.16, 0.5, 0.28, 1
+                    RoundedRectangle:
+                        pos: self.pos
+                        size: self.size
+                        radius: [dp(6)]
+                Icon:
+                    icon: 'check'
+                    color: 1, 1, 1, 1
+                    size_hint_x: None
+                    width: dp(40)
+                Label:
+                    text: 'Connected to Google Drive as ' + root.account
+                    color: 1, 1, 1, 1
+                    bold: True
+                    text_size: self.size
+                    halign: 'left'
+                    valign: 'middle'
+                    shorten: True
+            TLabel:
+                text: 'Last backup: [b]' + root.last_sync + '[/b]\nYour library and PDFs are in the "SciLibra" folder of your Google Drive.\nDrive keeps earlier versions of the library, plus one dated copy per day (last 10 days).'
+                color: theme.MUTED
+            BoxLayout:
+                size_hint_y: None
+                height: dp(34)
+                CheckBox:
+                    active: root.auto_sync
+                    size_hint_x: None
+                    width: dp(36)
+                    on_active: root.controller.set_auto_sync(self.active); root.auto_sync = self.active
+                Label:
+                    text: 'Back up automatically after changes and when closing SciLibra'
+                    color: theme.TEXT
+                    text_size: self.size
+                    halign: 'left'
+                    valign: 'middle'
+            Widget:
+            AccentButton:
+                text: 'Back up now'
+                font_size: '15sp'
+                height: dp(42)
+                on_release: root.controller.sync(manual=True)
+            BoxLayout:
+                size_hint_y: None
+                height: dp(38)
+                spacing: dp(8)
+                FlatButton:
+                    text: 'Open in Google Drive'
+                    on_release: root.controller.open_in_browser()
+                FlatButton:
+                    text: 'Restore from Drive...'
+                    on_release: root.controller.restore()
+                DangerButton:
+                    text: 'Sign out'
+                    on_release: root.controller.sign_out()
+        BoxLayout:
+            size_hint_y: None
+            height: dp(38)
+            Widget:
+            FlatButton:
+                text: 'Close'
+                size_hint_x: None
+                width: dp(110)
+                on_release: root.dismiss()
 
 # ---------------------------------------------------------------- dialogs
 <BasePopup>:
@@ -621,17 +784,17 @@
             multiselect: root.multiselect
             dirselect: root.mode == 'folder'
             on_submit: if root.mode == 'open': root.confirm()
-        BoxLayout:
+        Collapsible:
+            shown: root.mode == 'save'
             size_hint_y: None
-            height: dp(38) if root.mode == 'save' else 0
-            opacity: 1 if root.mode == 'save' else 0
+            height: dp(38) if self.shown else 0
+            opacity: 1 if self.shown else 0
             spacing: dp(8)
             FieldLabel:
                 text: 'File name'
             DarkInput:
                 id: filename
                 text: root.filename
-                disabled: root.mode != 'save'
                 on_text_validate: root.confirm()
         BoxLayout:
             size_hint_y: None
@@ -1207,11 +1370,11 @@
                 pos_hint: {'center_y': 0.5}
                 on_release: root.toggle_panel('contents')
         # text selection actions
-        BoxLayout:
+        Collapsible:
+            shown: bool(root.selection_text)
             size_hint_y: None
-            height: dp(40) if root.selection_text else 0
-            opacity: 1 if root.selection_text else 0
-            disabled: not root.selection_text
+            height: dp(40) if self.shown else 0
+            opacity: 1 if self.shown else 0
             padding: dp(10), dp(4)
             spacing: dp(6)
             canvas.before:
@@ -1272,12 +1435,12 @@
                     height: self.minimum_height
                     padding: dp(20)
                     spacing: dp(14)
-            BoxLayout:
+            Collapsible:
+                shown: bool(root.panel)
                 orientation: 'vertical'
                 size_hint_x: None
-                width: dp(330) if root.panel else 0
-                opacity: 1 if root.panel else 0
-                disabled: not root.panel
+                width: dp(330) if self.shown else 0
+                opacity: 1 if self.shown else 0
                 padding: dp(10)
                 spacing: dp(8)
                 canvas.before:

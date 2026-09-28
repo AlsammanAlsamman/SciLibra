@@ -44,8 +44,10 @@ SINGLE_TABLES = {"title": "title", "year": "year", "journal": "journal"}
 SUB_TABLES = list(LIST_TABLES.values()) + list(SINGLE_TABLES.values())
 # Cache of annotations read from the PDFs (the PDF file stays the source of truth).
 ANNOTATION_TABLES = ["pdfannotations", "pdfannotationstate"]
+# What was uploaded to Google Drive for each article's PDF
+DRIVE_TABLE = "drivefiles"
 # Every table holding per-article rows (used when deleting or renaming articles)
-ARTICLE_TABLES = ["articles", "firstpageimages"] + SUB_TABLES + ANNOTATION_TABLES
+ARTICLE_TABLES = ["articles", "firstpageimages"] + SUB_TABLES + ANNOTATION_TABLES + [DRIVE_TABLE]
 
 DEFAULT_PROPERTIES = {
     "clusteringcategory": "keywords",
@@ -56,6 +58,11 @@ DEFAULT_PROPERTIES = {
 
 def now() -> str:
     return datetime.datetime.now().isoformat(sep=" ", timespec="seconds")
+
+
+def now_precise() -> str:
+    """Modification stamps must differ even for changes within the same second (used by sync)."""
+    return datetime.datetime.now().isoformat(sep=" ", timespec="microseconds")
 
 
 class Database:
@@ -105,6 +112,8 @@ class Database:
                       "text text, note text, author text, color text, rect text)")
             c.execute("CREATE TABLE IF NOT EXISTS pdfannotationstate (ID text, pdfpath text, mtime real)")
             c.execute("CREATE INDEX IF NOT EXISTS idx_pdfannotations_id ON pdfannotations(ID)")
+            c.execute("CREATE TABLE IF NOT EXISTS drivefiles (ID text, path text, mtime real, size integer, "
+                      "md5 text, fileid text)")
 
     def _create_schema(self):
         with self.transaction() as c:
@@ -240,7 +249,7 @@ class Database:
             article.date_added = now()
         with self.transaction() as c:
             self._write_article(c, article)
-            self.set_property("lastmodificationdate", now(), c)
+            self.set_property("lastmodificationdate", now_precise(), c)
 
     def save_many(self, articles):
         with self.transaction() as c:
@@ -248,7 +257,7 @@ class Database:
                 if not a.date_added:
                     a.date_added = now()
                 self._write_article(c, a)
-            self.set_property("lastmodificationdate", now(), c)
+            self.set_property("lastmodificationdate", now_precise(), c)
 
     def rename(self, old_key: str, new_key: str):
         with self.transaction() as c:
@@ -260,7 +269,7 @@ class Database:
         with self.transaction() as c:
             for table in ARTICLE_TABLES:
                 c.executemany(f"DELETE FROM {table} WHERE ID=?", [(k,) for k in keys])
-            self.set_property("lastmodificationdate", now(), c)
+            self.set_property("lastmodificationdate", now_precise(), c)
 
     def exists(self, key: str) -> bool:
         return bool(self._query("SELECT 1 FROM articles WHERE ID=?", (key,)))
@@ -345,6 +354,26 @@ class Database:
 
     def distinct_values(self, table: str) -> list[str]:
         return [v for v, _ in self.group_counts(table)]
+
+    # ------------------------------------------------------------------ Google Drive state
+    def drive_state(self) -> dict:
+        rows = self._query("SELECT ID, path, mtime, size, md5, fileid FROM drivefiles")
+        return {r[0]: {"path": r[1], "mtime": r[2], "size": r[3], "md5": r[4], "fileid": r[5]} for r in rows}
+
+    def set_drive_state(self, key, path, mtime, size, md5, fileid):
+        with self.transaction() as c:
+            c.execute("DELETE FROM drivefiles WHERE ID=?", (key,))
+            c.execute("INSERT INTO drivefiles VALUES (?, ?, ?, ?, ?, ?)", (key, path, mtime, size, md5, fileid))
+
+    def snapshot(self, dest: str):
+        """Write a consistent copy of the library to `dest` (safe while the library is in use)."""
+        with self._lock:
+            self._conn.commit()
+            target = sqlite3.connect(dest)
+            try:
+                self._conn.backup(target)
+            finally:
+                target.close()
 
     # ------------------------------------------------------------------ PDF annotation cache
     def cached_annotations(self, key: str, pdfpath: str, mtime: float):

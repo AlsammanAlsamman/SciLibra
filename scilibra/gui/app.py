@@ -37,6 +37,7 @@ from . import theme
 from .dialogs import ConfirmDialog, FileDialog, MessageDialog, ProgressDialog, TextDialog, ValuePicker
 from .editor import ArticleEditor
 from .viewer import PdfViewer, fill_annotation_list
+from .drive import DriveController
 
 log = logging.getLogger(__name__)
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -105,6 +106,8 @@ class SciLibraApp(App):
     d_has_pdf = BooleanProperty(False)
     d_comments = ListProperty([])
     d_thumb = ObjectProperty(None, allownone=True)
+    drive_connected = BooleanProperty(False)
+    drive_syncing = BooleanProperty(False)
     d_annotations = ListProperty([])
     d_annotations_info = StringProperty("")
 
@@ -116,6 +119,7 @@ class SciLibraApp(App):
         self.history: list[View] = []
         self.rows: list[dict] = []
         self._busy = False
+        self.drive = None
 
     # ------------------------------------------------------------------ lifecycle
     def build(self):
@@ -130,10 +134,18 @@ class SciLibraApp(App):
     def on_start(self):
         path, message = resolve_library_path(self.settings, self.explicit_library)
         self.open_library(path, notice=message)
+        self.drive = DriveController(self)
 
     def on_stop(self):
+        if self.drive is not None:
+            self.drive.sync_before_exit()
         if self.library:
             self.library.close()
+
+    def modified(self):
+        """Called after every change to the library or its PDFs (triggers the Google Drive backup)."""
+        if self.drive is not None:
+            self.drive.changed()
 
     def open_library(self, path: str, notice: str = ""):
         try:
@@ -435,6 +447,7 @@ class SciLibraApp(App):
             library.set_last_page(key, viewer.page)
             if viewer.modified:
                 library.annotations(key, refresh=True)
+                self.modified()
             if self.selected_key == key:
                 self.select_article(key)
 
@@ -501,6 +514,7 @@ class SciLibraApp(App):
             return
         added = self.library.annotations_to_comments(a.key)
         self.select_article(a.key)
+        self.modified()
         self.set_status(f"{added} annotations saved as comments" if added
                         else "All annotations are already saved as comments")
 
@@ -545,6 +559,7 @@ class SciLibraApp(App):
             self.refresh_list()
             self.select_article(a.key)
             self.set_status(f"Attached {os.path.basename(path)} to {a.key}")
+            self.modified()
         self.choose_file(f"Choose the PDF for '{a.key}'", chosen, filters=["*.pdf", "*.PDF"])
 
     def edit_article(self):
@@ -563,6 +578,7 @@ class SciLibraApp(App):
         self.refresh_list()
         self.select_article(article.key)
         self.set_status(f"Saved {article.key}")
+        self.modified()
         return None
 
     def _save_new(self, article, _old_key):
@@ -571,6 +587,7 @@ class SciLibraApp(App):
         self.refresh_list()
         self.select_article(article.key)
         self.set_status(f"Added {article.key}")
+        self.modified()
         return None
 
     def delete_article(self):
@@ -583,6 +600,7 @@ class SciLibraApp(App):
             self.select_article("")
             self.refresh_list()
             self.set_status(f"Deleted {a.key}")
+            self.modified()
         self.confirm("Delete article", f"Delete '{a.title or a.key}' from the library?\n\n"
                      "The PDF file itself is not deleted.", do_delete, confirm_text="Delete", danger=True)
 
@@ -603,6 +621,7 @@ class SciLibraApp(App):
             self.root.ids.comment_input.text = ""
             self.select_article(self.selected_key)
             self.set_status("Comment added")
+            self.modified()
 
     def remove_comment(self, text):
         key = self.selected_key
@@ -611,6 +630,7 @@ class SciLibraApp(App):
             self.library.remove_comment(key, text)
             self.select_article(key)
             self.set_status("Comment removed")
+            self.modified()
         self.confirm("Remove comment", f"Remove this comment?\n\n{text}", do_remove, confirm_text="Remove", danger=True)
 
     # ------------------------------------------------------------------ adding articles
@@ -652,6 +672,7 @@ class SciLibraApp(App):
             lines.append("\nCould not be read (check the BibTeX syntax):\n  " + "\n  ".join(report.failed[:30]))
         lines += report.notes
         self.set_status(f"{title}: {report.summary()}")
+        self.modified()
         self.message(title, "\n".join(lines))
 
     def add_pdfs(self):
@@ -705,6 +726,7 @@ class SciLibraApp(App):
             if notes:
                 text += "\n\nDetails:\n" + "\n".join(notes[:200])
             self.set_status(f"Add PDFs: {len(added)} added")
+            self.modified()
             self.message("Add PDFs", text)
         self.run_in_background("Adding PDFs", work, done)
 
@@ -728,6 +750,7 @@ class SciLibraApp(App):
                              "(use Add › Add PDFs to add them as new articles):\n  "
                              + "\n  ".join(os.path.basename(p) for p in unmatched[:40]))
                 self.set_status(f"Linked {len(linked)} PDFs")
+                self.modified()
                 self.message("Link PDF folder", text)
             self.run_in_background("Linking PDFs", work, done)
         self.choose_folder("Choose a folder containing PDFs named <key>.pdf (sub-folders included)", chosen)
@@ -786,6 +809,7 @@ class SciLibraApp(App):
             self.go_back()
             self.select_article("")
             self.set_status(f"Removed {len(removed)} duplicates")
+            self.modified()
             self.message("Duplicates removed", f"{len(removed)} duplicate articles were removed. Comments, keywords "
                                                "and tag groups were merged into the kept article.")
         self.confirm("Duplicates found",
@@ -918,6 +942,7 @@ class SciLibraApp(App):
             self.history = []
             self.show_view(View("articles", ALL_ARTICLES), remember=False)
             self.set_status("All articles deleted")
+            self.modified()
 
         def second():
             self.confirm("Are you sure?", f"This permanently removes {n} articles and their comments.\n"

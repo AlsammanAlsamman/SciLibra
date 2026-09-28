@@ -33,6 +33,7 @@ class Settings:
     library_path: str = ""
     last_folder: str = ""
     recent_libraries: list[str] = field(default_factory=list)
+    drive_auto_sync: bool = True
 
     @staticmethod
     def file() -> str:

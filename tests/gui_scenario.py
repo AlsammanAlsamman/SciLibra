@@ -92,6 +92,33 @@ def click_row(title_part):
     raise AssertionError(f"no row containing {title_part!r}: {[r['title'] for r in rows()][:10]}")
 
 
+def click(widget):
+    """A real mouse click at the widget's centre, dispatched through the window like a user's click."""
+    from kivy.tests.common import UnitTestTouch
+    x, y = widget.to_window(*widget.center)
+    touch = UnitTestTouch(x, y)
+    touch.touch_down()
+    touch.touch_up()
+
+
+def real_drag(page, p0, p1, steps=5):
+    """A real mouse drag between two PDF points of a page."""
+    from kivy.tests.common import UnitTestTouch
+    points = [page.to_window(*page.to_widget(p0[0] + (p1[0] - p0[0]) * i / steps, p0[1] + (p1[1] - p0[1]) * i / steps))
+              for i in range(steps + 1)]
+    touch = UnitTestTouch(*points[0])
+    touch.touch_down()
+    for x, y in points[1:]:
+        touch.touch_move(x, y)
+    touch.touch_up()
+
+
+def button(root, text):
+    found = [w for w in root.walk() if getattr(w, "text", None) == text and hasattr(w, "trigger_action")]
+    assert found, f"no button {text!r}"
+    return found[0]
+
+
 def choose_in_file_dialog(path=None, folder=None, filename=None):
     dialog = top(FileDialog)
     chooser = dialog.ids.chooser
@@ -522,6 +549,20 @@ def s_annotate_in_viewer():
     viewer._on_mouse(None, (1, 1))
     assert not buttons["StrikeOut"].hovered
 
+    # real mouse input: click a tool icon, drag over text, click an annotation, and the red Close button
+    viewer.go_to(1)
+    yield 0.3
+    click(buttons["StrikeOut"])
+    assert viewer.tool == "StrikeOut"
+    count = len(viewer.annotations)
+    real_drag(page, mid("independent"), mid("panels."))
+    assert len(viewer.annotations) == count + 1 and viewer.annotations[-1].kind == "StrikeOut", \
+        [a.kind for a in viewer.annotations]
+    assert viewer.annotations[-1].text == "independent wheat panels."
+    viewer.undo()
+    click(buttons["select"])
+    assert viewer.tool == "select"
+
     # select tool: click the highlight, change its note and colour
     viewer.tool = "select"
     hl = viewer.annotations[0]
@@ -562,7 +603,7 @@ def s_annotate_in_viewer():
     viewer.night = False
     viewer.go_to(3)
     yield 0.3
-    key(27)
+    click(button(viewer, "X   Close"))
     yield 0.3
     assert viewer not in popups()
     # closing refreshes the details panel and remembers the page
@@ -588,6 +629,120 @@ def s_export_notes():
     with open(os.path.join(DATA, "notes.md"), encoding="utf-8") as fh:
         text = fh.read()
     assert "Main claim" in text and "**p. 1, Highlight**" in text and "Compare with Table 2" in text
+
+
+def s_google_drive():
+    import json as _json
+    from scilibra.core.gdrive import DriveClient
+    from scilibra.gui import drive as drive_mod
+    from scilibra.gui.drive import DriveDialog
+    from tests.fake_drive import FakeDrive, fake_token
+    fake = FakeDrive()
+    controller = app.drive
+    controller._client = lambda: DriveClient(fake)
+    controller.account.sign_in = lambda open_browser=True: fake_token(controller.account.token_file)
+    drive_mod.AFTER_CHANGE_DELAY = 0.3
+    assert not app.drive_connected
+    opened = []
+    drive_mod.webbrowser.open = lambda url: opened.append(url)
+    drive_button = [w for w in app.root.walk() if w.__class__.__name__ == "DriveButton"][0]
+    assert "Google Drive" in [c.text for c in drive_button.children if hasattr(c, "text")]
+    # 1) not set up: every button must react to a real click
+    click(drive_button)
+    dialog = top(DriveDialog)
+    yield FRAME
+    assert dialog.state == "setup"
+    shot("drive_setup")
+    click(button(dialog, "Open Google Cloud Console"))
+    assert opened == [drive_mod.CONSOLE_URL], opened
+    client_json = os.path.join(DATA, "client_secret_test.json")
+    with open(client_json, "w") as fh:
+        _json.dump({"installed": {"client_id": "x.apps.googleusercontent.com", "client_secret": "y",
+                                  "auth_uri": "a", "token_uri": "t"}}, fh)
+    click(button(dialog, "Load client file..."))
+    yield FRAME
+    file_dialog = top(FileDialog)
+    file_dialog.ids.chooser.path = DATA
+    file_dialog.ids.chooser.selection = [client_json]
+    yield FRAME
+    click(button(file_dialog, "Open"))
+    yield FRAME
+    assert dialog.state == "signin" and top() is dialog
+    shot("drive_signin")
+    # 2) sign in -> first backup runs
+    click(button(dialog, "Sign in with Google"))
+    for _ in range(50):
+        if app.drive_connected and not controller.syncing and isinstance(popups()[0], MessageDialog):
+            break
+        yield 0.2
+    msg = top(MessageDialog)
+    assert "library backed up" in msg.message and "PDFs uploaded" in msg.message, msg.message
+    click(button(msg, "Close"))
+    yield FRAME
+    assert app.drive_connected and dialog.state == "connected" and "scientist@example.com" in dialog.account
+    shot("drive_connected")
+    click(button(dialog, "Back up now"))
+    for _ in range(50):
+        if not controller.syncing and isinstance(popups()[0], MessageDialog):
+            break
+        yield 0.2
+    assert "already up to date" in top(MessageDialog).message
+    click(button(top(MessageDialog), "Close"))
+    yield FRAME
+    click(button(dialog, "Open in Google Drive"))
+    assert opened[-1].startswith("https://drive.google.com/drive/folders/")
+    click(button(dialog, "Close"))
+    yield FRAME
+    assert dialog not in popups()
+    shot("drive_button_green")
+    uploaded = {f["name"] for f in fake.files.values()}
+    assert {"SciLibra", "PDFs", "Backups", "library.db"} <= uploaded and "smith2020deep.pdf" in uploaded
+    # 3) automatic backup after a change
+    before = fake.upload_count
+    app.select_article("smith2020deep")
+    app.add_comment("sync me")
+    for _ in range(40):
+        if fake.upload_count > before and not controller.syncing:
+            break
+        yield 0.2
+    assert fake.upload_count > before, "automatic backup did not run"
+    lib_copy = os.path.join(DATA, "drive_check.db")
+    open(lib_copy, "wb").write(fake.content("library.db"))
+    import sqlite3
+    con = sqlite3.connect(lib_copy)
+    assert con.execute("SELECT COUNT(*) FROM comment WHERE articleData='sync me'").fetchone()[0] == 1
+    con.close()
+    # nothing changed -> the periodic check does not upload again
+    before = fake.upload_count
+    controller._tick(0)
+    yield 0.5
+    assert fake.upload_count == before
+    # 4) restore on a "new computer"
+    current = app.library.path
+    controller.restore()
+    top(ConfirmDialog).confirm()
+    newpc = os.path.join(WORK, "newpc")
+    os.makedirs(newpc)
+    choose_in_file_dialog(folder=newpc)
+    yield BUSY
+    msg = top(MessageDialog)
+    assert "Restored the library" in msg.message, msg.message
+    msg.dismiss()
+    assert app.library.path != current and "library-from-drive" in app.library.path
+    restored = app.library.get("smith2020deep")
+    assert restored.comments[-1] == "sync me" and restored.has_pdf
+    assert restored.folderpath == os.path.join(newpc, "SciLibra PDFs")
+    app.open_library(current)
+    close_all()
+    # 5) sign out -> grey again
+    click(drive_button)
+    yield FRAME
+    click(button(top(DriveDialog), "Sign out"))
+    yield FRAME
+    click(button(top(ConfirmDialog), "Sign out"))
+    yield FRAME
+    assert not app.drive_connected and top(DriveDialog).state == "signin"
+    click(button(top(DriveDialog), "Close"))
 
 
 def s_viewer_from_annotation_and_bad_pdf():
@@ -782,7 +937,7 @@ def s_finish():
 
 STEPS = [s_start, s_import_bibtex, s_select_article, s_group_by_keywords, s_group_by_other_fields, s_keyboard, s_keyboard_events,
          s_edit_article, s_editor_validation_and_picker, s_comments, s_search, s_paste_bibtex, s_attach_pdf,
-         s_annotations_in_details, s_pdf_viewer, s_annotate_in_viewer, s_export_notes, s_viewer_from_annotation_and_bad_pdf, s_add_pdfs, s_link_folder, s_missing_pdfs, s_duplicates, s_statistics_help_about, s_menus, s_export,
+         s_annotations_in_details, s_pdf_viewer, s_annotate_in_viewer, s_export_notes, s_viewer_from_annotation_and_bad_pdf, s_add_pdfs, s_link_folder, s_missing_pdfs, s_duplicates, s_statistics_help_about, s_google_drive, s_menus, s_export,
          s_new_article, s_delete_article, s_no_selection_messages, s_delete_all, s_finish]
 queue = list(STEPS)
 
