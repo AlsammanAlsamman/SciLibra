@@ -1079,11 +1079,6 @@
                 Rectangle:
                     pos: self.pos
                     size: self.size
-            FlatButton:
-                text: '< Library'
-                size_hint_x: None
-                width: dp(90)
-                on_release: root.dismiss()
             Label:
                 text: root.title
                 color: theme.TEXT
@@ -1169,6 +1164,15 @@
                 size_hint_x: None
                 width: dp(78)
                 on_release: root.open_external()
+            Widget:
+                size_hint_x: None
+                width: dp(6)
+            DangerButton:
+                text: 'X   Close'
+                bold: True
+                size_hint_x: None
+                width: dp(96)
+                on_release: root.dismiss()
         # annotation tools
         BoxLayout:
             size_hint_y: None
@@ -1339,10 +1343,19 @@
                     pos: self.pos
                     size: self.size
             Label:
-                text: root.error or root.status or 'PgUp/PgDn: pages  ·  Ctrl+wheel or +/-: zoom  ·  Ctrl+F: find  ·  hover a tool to see its name and shortcut  ·  Ctrl+Z: undo  ·  Esc: back'
+                text: root.error or root.status or 'PgUp/PgDn: pages  ·  Ctrl+wheel or +/-: zoom  ·  Ctrl+F: find  ·  hover a tool to see its name and shortcut  ·  Ctrl+Z: undo  ·  Esc or Close: back to the library'
                 color: theme.ERROR if root.error else theme.MUTED
                 font_size: '12sp'
                 text_size: self.size
                 halign: 'left'
                 valign: 'middle'
                 shorten: True
+            Label:
+                text: 'All changes saved in the PDF' if root.modified else 'Changes are saved automatically'
+                color: (0.45, 0.85, 0.45, 1) if root.modified else theme.MUTED
+                font_size: '12sp'
+                size_hint_x: None
+                width: dp(230)
+                text_size: self.size
+                halign: 'right'
+                valign: 'middle'
