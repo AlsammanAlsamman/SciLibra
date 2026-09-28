@@ -20,6 +20,7 @@
 #:include kv/LoadFolderDialog.kv
 #:include kv/CommentsManager.kv
 #:include kv/ArticleBoard.kv
+#:include kv/AddArticles.kv
 
 <MainScreen>:
     name: 'main'
@@ -74,8 +75,6 @@
                         #rgb(173,255,47)
                         background_color: 0.678, 0.847, 0.902, 1
                         on_release: root.manage_comments()
-                
-                
                 # Article Actions
                 BoxLayout:
                     size_hint_y: None
@@ -187,3 +186,6 @@
     ArticleBoard:
         id: article_board
         name: 'ArticleBoard'
+    AddArticles:
+        id: article_add
+        name: 'AddArticles'

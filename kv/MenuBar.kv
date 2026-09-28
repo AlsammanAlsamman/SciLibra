@@ -75,7 +75,13 @@
                         width: 200
                         on_release: root.search_article()
                     Button:
-                        text: 'Add Article'
+                        text: 'Add Article(s)'
+                        size_hint: None, None
+                        height: 44
+                        width: 200
+                        on_release: root.add_articles()
+                    Button:
+                        text: 'Add Article with BibTex'
                         size_hint: None, None
                         height: 44
                         width: 200

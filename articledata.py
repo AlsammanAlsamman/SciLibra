@@ -15,6 +15,7 @@ from pylatexenc.latex2text import LatexNodes2Text
 import librarydatabase
 import os
 import io
+import re
 from PIL import Image
 
 ############################################## global variables #############################
@@ -65,11 +66,17 @@ def blob2image(blob):
 def read_bibfile(bibtexFile):
     bib_database = []
     bibtextfile = open(bibtexFile, 'r')
+   
+    # remove empty lines
+    bibtextfile = [x for x in bibtextfile if x.strip()]
+    bibtextfile = ''.join(bibtextfile)
+    print(bibtextfile)
     # split the file into articles
-    bibtext = bibtextfile.read().split('@')
-    # add @ to the beginning of each article
-    bibtext = ['@' + x for x in bibtext]
-    # parse each article
+    bibtext = re.split('@article', bibtextfile)
+    # remove empty items
+    bibtext = [x for x in bibtext if x!='']
+    # add the @article to the beginning of each article
+    bibtext = ['@article'+x for x in bibtext]
     for i in range(len(bibtext)):
         bib=bibtexparser.loads(bibtext[i]).entries
         # if not empty
@@ -78,11 +85,9 @@ def read_bibfile(bibtexFile):
             # remove latex format
             for key in bib.keys():
                 bib[key]=LatexNodes2Text().latex_to_text(bib[key])
-            # bib['bibtext']=bibtext[i] will generate errors in the database
             # add to the list
             bib_database.append(bib)
     return bib_database
-
 # def latextotext(latex):
 #     return LatexNodes2Text().latex_to_text(latex)
 ############################################## Show Info #########################################

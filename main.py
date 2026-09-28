@@ -1,6 +1,4 @@
 #!/usr/bin/python3
-
-
 ############################################## About Author #########################################
 # Created by: Alsamman M. Alsamman                                                                  #
 # Emails: smahmoud [at] ageri.sci.eg or A.Alsamman [at] cgiar.org or SammanMohammed [at] gmail.com  #
@@ -15,7 +13,6 @@ import os
 import sys
 import webbrowser
 
-################# Kivy Imports #####################
 from kivy.app import App
 from kivy.uix.label import Label
 from kivy.uix.gridlayout import GridLayout
@@ -39,8 +36,18 @@ from time import sleep
 from kivy.uix.checkbox import CheckBox
 from kivy.clock import Clock
 from kivy.config import Config
+from kivy.uix.progressbar import ProgressBar
 # random 
 import random
+import multiprocessing
+
+# importing required modules for crossref
+from pypdf import PdfReader
+import re
+from crossref import get_bib_from_doi
+# for multiple processing
+from multiprocessing import Process
+from helpersFuncs import internet_connection
 
 Config.set('kivy','window_icon','icon.png')
 
@@ -66,7 +73,6 @@ articleInfoTable = {'ID': 'text',
                 'pages': 'text',
                 'volume': 'text',
                 'number': 'text',
-                
                 'publisher': 'text'}
 # Sub Tables
 dbSubTablesInfo = {
@@ -114,6 +120,9 @@ searchStatus = False
 
 # Available Values
 AvailableValues = {}
+
+
+
 ########## Classes ############
 class MenuBar(BoxLayout):
     article_groups = ObjectProperty(None)
@@ -125,21 +134,20 @@ class MenuBar(BoxLayout):
 
     def show_help(self):
         pass
-    
     def show_about(self):
         about = AboutSciLibra()
         about.open()
-    
         pass
-    
     def add_article(self):
         # change screen
         self.parent.parent.manager.current = "ArticleBoard"
         pass
-    
+    def add_articles(self):
+        # change screen
+        self.parent.parent.manager.current = "AddArticles"
+        pass
     def dismiss_popup(self):
         self._popup.dismiss()
-    
     def load(self, path, filename):
         notinserted = []
         entries=articledata.read_bibfile(filename[0])
@@ -193,12 +201,10 @@ class MenuBar(BoxLayout):
     def updatefolderpath(self):
         updateLoader = UpdateFolderPath()
         updateLoader.open()
-
     def filter_database(self):
         # open the filter database popup
         filterdatabase = FilterDatabase()
         filterdatabase.open()
-    
     def save_database_as_bibtex(self):
         print("Save Database as BibTex")
         # get all articles from the database
@@ -225,13 +231,10 @@ class MenuBar(BoxLayout):
         saveButton = Button(text="Save", size_hint=(1, 0.1))
         saveButton.bind(on_press=lambda x: self.saveDatabase2Bib(fileChooser.path, filenameTextBox.text))
         saveBox.add_widget(saveButton)
-
         # add a button to cancel the save
         cancelButton = Button(text="Cancel", size_hint=(1, 0.1))
         cancelButton.bind(on_press=lambda x: self.dismiss_popup())
         saveBox.add_widget(cancelButton)
-
-
         # # create a popup
         self._popup = Popup(title="Save file", content=saveBox,
                             size_hint=(0.9, 0.9), auto_dismiss=False)
@@ -298,25 +301,6 @@ class MenuBar(BoxLayout):
         self.dismiss_popup()
         pass
     def Dict2Bibtext(self, dict):
-        # convert the dictionary to bibtext
-        # information needed
-        # ID
-        # title
-        # author
-        # year
-        # journal
-        # taggroups
-        # url
-        # folderpath
-        # keywords
-        # abstract
-        # ENTRYTYPE
-        # pages
-        # volume
-        # number
-        # publisher
-        # month
-
         # loop and print all the keys and values
         bibtext = "@article{" + dict["ID"] + ",\n"
         for key in dict:
@@ -371,7 +355,6 @@ class MenuBar(BoxLayout):
         LibraryListView.createLibrayViewList(libView, libcon, currentClusteringCategory)
         # close connection
         libcon.close()
-    
     def general_statistics(self):
         # open the database
         global SciLibraDatabaseName
@@ -437,7 +420,6 @@ class MenuBar(BoxLayout):
         global SciLibraDatabaseName
         libcon = librarydatabase.create_connection(SciLibraDatabaseName)
         articleID_Path = librarydatabase.getAllValuesForColumnInMainTable(libcon, 'folderpath')
-        
         pdfMissingOrNotFound = []
         for article in articleID_Path:
             articlePDF=os.path.join(articleID_Path[article], article+".pdf")
@@ -450,16 +432,13 @@ class MenuBar(BoxLayout):
             # open the popup
             popup.open()
             return
-        
         # extract the title from the main table
         ArticleTitles = librarydatabase.getArticleValuesforKeySetInSubTable(libcon, 'title', pdfMissingOrNotFound)
         # create a report contains ID and title
         Report = ""
         for article in pdfMissingOrNotFound:
             Report += article + ": " + ArticleTitles[article] + "\n"
-
         libcon.close()
-
         # create a popup message
         popup = PopUpMessage(title="Articles without PDF", message="The following " + str(len(pdfMissingOrNotFound)) + " articles have no PDFs:\n" + Report)
         # open the popup
@@ -594,8 +573,6 @@ class ArticleBoard(Screen):
             # open the popup
             popup.open()
             return
-
-
         # add the pdf to the pdfs list
         self.pdfs.append(path + "/" + filename[0])
         # dismiss the popup
@@ -603,6 +580,8 @@ class ArticleBoard(Screen):
         pass
     def dismiss_popup(self):
         self._popup.dismiss()
+
+        
     def save_article(self):
         # first get the bibtext
         bibtext = self.bibTextBox.text
@@ -671,12 +650,255 @@ class ArticleBoard(Screen):
         # return to the main screen
         self.manager.current = "main"
 
-
     def dismiss(self):
         # dismiss the popup and go back to the main screen
         self.manager.current = "main"
 
 
+class AddArticles(Screen):
+    pdfPathBox = ObjectProperty('')
+    pdfs = []
+    progress = 0
+    def select_pdf (self):
+        # create a BoxLayout with the filechooser two buttons and "Add PDF" and "Cancel"
+        box = BoxLayout(orientation='vertical')
+        # file chooser
+        fileChooser = FileChooserListView()
+        #  default path
+        fileChooser.path = DefultFolderPath
+        # select only one file
+        fileChooser.multiselect = False
+        # pdf files only
+        fileChooser.filters = ["*.pdf"]
+        # add the file chooser to the box
+        box.add_widget(fileChooser)
+        # Grid layout for the buttons
+        grid = GridLayout(cols=2)
+        # add the buttons to the grid
+        addPDF = Button(text="Add PDF")
+        addPDF.bind(on_press=lambda: self.add_pdf(fileChooser.path, fileChooser.selection))
+        grid.add_widget(addPDF)
+        # add the buttons to the grid
+        cancel = Button(text="Cancel")
+        cancel.bind(on_press=lambda: self.dismiss_popup())
+        grid.add_widget(cancel)
+        # add the grid to the box
+        box.add_widget(grid)
+        # create a popup
+        self._popup = Popup(title="Select PDF File", content=box,
+                            size_hint=(0.9, 0.9), auto_dismiss=False)
+        self._popup.open()
+        pass
+    def dismiss(self):
+        # dismiss the popup and go back to the main screen
+        self.manager.current = "main"
+        pass
+    def add_pdf(self, path, filename):
+        # add the pdf path to the pdf path text box
+        try:
+            self.pdfPathBox.text +=  filename[0] + "\n"
+        except:
+            # some error
+            popup = PopUpMessage(title="Invalid PDF", message="Please select a valid PDF file")
+            # open the popup
+            popup.open()
+            return
+        # add the pdf to the pdfs list
+        self.pdfs.append(path + "/" + filename[0])
+        # dismiss the popup
+        self.dismiss_popup()
+        pass
+    def add_folder(self):
+        # LoadFolderDialog
+        content = LoadFolderDialog(load=self.load_folder, cancel=self.dismiss_popup, startPath=DefultFolderPath)
+        self._popup = Popup(title="Load file", content=content,
+                            size_hint=(0.9, 0.9))
+        self._popup.open()
+        pass
+    def load_folder(self, path, _):
+        # list all pdf files in the folder
+        pdfList = [os.path.join(path, f) for f in os.listdir(path) if f.endswith(".pdf")]
+        # add the pdfs to the pdf path text box
+        for pdf in pdfList:
+            self.pdfPathBox.text += pdf + "\n"
+        # add the pdfs to the pdfs list
+        self.pdfs += pdfList
+        # dismiss the popup
+        self.dismiss_popup()
+
+    def dismiss_popup(self):
+        self._popup.dismiss()
+    def save_article(self):
+        #check internet connection
+        pdfs2save = {}
+        if  internet_connection():
+            print("Internet is connected")
+            # print all pdfs in the pdfPathBox
+            pdfs = self.pdfPathBox.text.strip().split("\n")
+            # create a progress bar in a popup
+            self.proBar = ProgressBar(max=len(pdfs))
+            self.popwin = Popup(title='Progress Bar', content=self.proBar, size_hint=(None, None), size=(300, 100))
+            # add the progress bar to the popup
+            self.popwin.open()
+            # create a queue for inter-process communication
+            self.queue = multiprocessing.Queue()
+            # start the worker process
+            self.process = multiprocessing.Process(target=self.process_PDFs_with_CrossRef, args=(pdfs, self.queue))
+            self.process.start()
+            # schedule the progress bar updates
+            Clock.schedule_interval(self.update_progress_bar, 0.1)
+
+            # pdfs2save = self.process_PDFs_with_CrossRef()
+        else:
+            print("Internet is not connected")
+            # I will implement the code here
+        bibpdf={}
+
+        # save the pdfs to the database
+        for pdf in pdfs2save:
+            # get the bibtext
+            if pdfs2save[pdf] == None:
+                print("\n\n\n\nNo bibtext for the pdf\n\n\n\n")
+                continue
+            bib = pdfs2save[pdf][1]
+            # check the bibtext
+            bib = self.checkbibtex(bib)
+            # replace article key with the file name @article{articleKey
+            articleKey = os.path.splitext(os.path.basename(pdf))[0]
+            # remove .pdf from the article key
+            articleKey = re.sub(r'\.pdf', '', articleKey)
+            bib = re.sub(r'@article{[^,]*,', '@article{' + articleKey + ',', bib)
+            bibpdf[articleKey] = [bib, pdf]
+
+        # open the database
+        global SciLibraDatabaseName
+        libcon = librarydatabase.create_connection(SciLibraDatabaseName)
+        # save the bibtext to temp file
+        bibfile=open("temp.bib", "w")
+        for articleKey in bibpdf:
+            # file.write(bibpdf[articleKey][0])
+            bibfile.write(bibpdf[articleKey][0].strip()+"\n\n")
+        bibfile.close()
+        # read the bibtex file
+        entries=articledata.read_bibfile("temp.bib")
+        print(entries)
+        # delete the temp file
+        # os.remove("temp.bib")
+        # insert the article to the database
+        notinserted = librarydatabase.insertArticleSet2Library(libcon, entries, articleInfoTable, dbSubTablesInfo)
+        # insert the pdf path
+        for articleKey in bibpdf:
+            path = os.path.dirname(bibpdf[articleKey][1])
+            # insert the pdf path
+            librarydatabase.updateMainTableRow(libcon, 'folderpath', articleKey, path, True)
+            # insert the first page image
+            try:
+                librarydatabase.insertArticle2firstPageImage(libcon, bibpdf[articleKey][1], articleKey)
+            except:
+                pass
+        # close connection
+        libcon.close()
+        # create a popup message
+        if len(notinserted) > 0:
+            popup = PopUpMessage(title="Not Inserted Articles", message="The following " + str(len(notinserted)) + " articles are not inserted:\n" + "\n".join(notinserted))
+            # open the popup
+            popup.open()
+        else:
+            popup = PopUpMessage(title="Inserted Articles", message="All articles are inserted successfully")
+            # open the popup
+            popup.open()
+        # clear the text boxes
+        self.pdfPathBox.text = ""
+        self.pdfs = []
+        # return to the main screen
+        self.manager.current = "main"
+        pass
+    def update_progress_bar(self, _):
+        # check if the process is still alive
+        if not self.process.is_alive():
+            # close the progress bar
+            self.popwin.dismiss()
+            # stop the clock
+            Clock.unschedule(self.update_progress_bar)
+            return
+        # check if there is something in the queue
+        if not self.queue.empty():
+            # get the progress
+            self.progress = self.queue.get()
+            # update the progress bar
+            self.proBar.value = self.progress
+        pass
+    def process_PDFs_with_CrossRef(self,pdfs, queue):
+        pdfwithbib = {}
+        # it seems that crossref will handle single process every time
+        # process every pdf normally
+        for i, pdf in enumerate(pdfs):
+            # self.article_pdf_to_bib(pdf)
+            try:
+                pdfwithbib[pdf] = self.article_pdf_to_bib(pdf)
+                # sleep(1)
+                # update the progress
+                queue.put(i)
+            except:
+                pass
+        return pdfwithbib
+
+    def checkbibtex(self, bib):
+        # be sure that all bibtext information are surrounded by {} except for the key
+        # remove the fire @article{
+        bib = re.sub(r'@article{', '', bib)
+        # remove the last }
+        bib = re.sub(r'}$', '', bib)
+        # get the key
+        key = bib.split(",")[0].strip()
+        # select all the information that is in the structure key = {value}
+        pattern = r'(\w+)\s*=\s*{([^}]*)}'
+        matches = re.findall(pattern, bib)
+        newbib = "@article{" + key + " , "
+        for match in matches:
+            # add space before the key
+            newbib += " "+match[0] + " = { " + match[1] + " } ,"
+        # remove last comma
+        newbib = re.sub(r',$', '', newbib)
+        # remove duplicate spaces
+        newbib = re.sub(r'\s+', ' ', newbib)
+        # remove space after }
+        newbib = re.sub(r'} ', '}', newbib)
+        # add space between }}
+        return newbib + " }"
+
+
+    def article_pdf_to_bib(self, pdf):
+        reader = None
+        try:
+            reader = PdfReader(pdf)
+        except:
+            return
+        # printing number of pages in pdf file
+        # print(len(reader.pages))
+        # get the first 2 pages
+        pages = reader.pages[0:2]
+        # extracting text from page 
+        text = pages[0].extract_text()+pages[1].extract_text()
+        # Normalizing text to remove unwanted spaces and newlines
+        normalized_text = re.sub(r'\s+', ' ', text)
+        # add space before any Uppercase letter
+        normalized_text = re.sub(r'([A-Z])', r' \1', normalized_text)
+        # Adjusted regex pattern to handle possible issues from PDF text extraction
+        doi_pattern = r'\b10\.\d{4,9}/[-._;()/:A-Z0-9]+\b'
+        # Finding all DOIs in the text
+        dois = re.findall(doi_pattern, normalized_text, re.IGNORECASE)
+        # if no dois are found then return
+        if len(dois) == 0:
+            return
+        # Getting the first DOI
+        doi = dois[0]
+        # if the doi is not found then return
+        if doi == None:
+            return
+        # # get the bib entry from the DOI
+        bib = get_bib_from_doi(doi)
+        return bib
 
 class ArticleInfo(TextInput):
     pass
@@ -1634,8 +1856,7 @@ class ArticleGroup(Button):
                                     # gray color code (0.5, 0.5, 0.5, 1)
                                     [0.5, 0.5, 0.5, 1],
                                     # black border
-                                    border = [0, 0, 0, 0.5]) 
-                                    
+                                    border = [0, 0, 0, 0.5])
         articleGroup.clusteringcategory = clusteringCategory
         articleGroup.articlegroupname = groupname
         articleGroup.parentgroup = libraryView
@@ -1689,33 +1910,6 @@ class ArticleGroup(Button):
         if Click2ReturnToolTip:
             LibraryTooltip().createTooltip("To return to the previous view click again")
         pass
-
-    
-
-# class YesNoDialog(Popup):
-#     message = StringProperty('')
-#     yesFunction = ObjectProperty(None)
-#     noFunction = ObjectProperty(None)
-#     def __init__(self, message=None, yesFunction=None, noFunction=None, **kwargs):
-#         super().__init__(**kwargs)
-#         self.message = message
-#         if yesFunction != None:
-#             self.yesFunction = yesFunction
-#         if noFunction != None:
-#             self.noFunction = noFunction
-#     def yes(self):
-#         if self.yesFunction != None:
-#             self.yesFunction()
-#             self.dismiss()
-#         else:
-#             self.dismiss()
-#     def no(self):
-#         if self.noFunction != None:
-#             self.noFunction()
-#             self.dismiss()
-#         else:
-#             self.dismiss()
-
 
 class LibraryTooltip(Popup):
     tooltip_text = StringProperty('') 
