@@ -97,9 +97,6 @@ def steps():
     app.show_help("read")
     yield 0.5
     shot("help")
-    Window.children[0].show("about")
-    yield 0.5
-    shot("about")
 
 
 def run(gen):

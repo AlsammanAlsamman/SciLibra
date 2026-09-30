@@ -23,8 +23,7 @@
   <a href="#-screenshots">Screenshots</a> ·
   <a href="#-installation">Installation</a> ·
   <a href="#-quick-start">Quick start</a> ·
-  <a href="#%EF%B8%8F-google-drive-backup">Google Drive backup</a> ·
-  <a href="#-the-author">Author</a>
+  <a href="#%EF%B8%8F-google-drive-backup">Google Drive backup</a>
 </p>
 
 <p align="center">
@@ -110,8 +109,7 @@
 <td><img src="https://raw.githubusercontent.com/AlsammanAlsamman/SciLibra/master/docs/screenshots/help.png" alt="Help center"><p align="center"><b>Help center</b></p></td>
 </tr>
 <tr>
-<td><img src="https://raw.githubusercontent.com/AlsammanAlsamman/SciLibra/master/docs/screenshots/splash.png" alt="Start screen"><p align="center"><b>Start screen</b></p></td>
-<td><img src="https://raw.githubusercontent.com/AlsammanAlsamman/SciLibra/master/docs/screenshots/about.png" alt="About page"><p align="center"><b>About</b></p></td>
+<td colspan="2" align="center"><img src="https://raw.githubusercontent.com/AlsammanAlsamman/SciLibra/master/docs/screenshots/splash.png" alt="Start screen" width="50%"><p align="center"><b>Start screen</b></p></td>
 </tr>
 </table>
 
@@ -264,24 +262,6 @@ lib.import_bibtex_file("refs.bib")
 print(lib.search("GWAS").keys)
 lib.export_bibtex("out.bib")
 ```
-
-## 👤 The author
-
-<table>
-<tr>
-<td width="150" align="center"><img src="https://raw.githubusercontent.com/AlsammanAlsamman/SciLibra/master/scilibra/assets/author.png" alt="Alsamman M. Alsamman" width="130"></td>
-<td>
-
-**Alsamman M. Alsamman** - creator of SciLibra
-
-📧 smahmoud [at] ageri.sci.eg · A.Alsamman [at] cgiar.org · SammanMohammed [at] gmail.com<br>
-🐙 [github.com/AlsammanAlsamman](https://github.com/AlsammanAlsamman)
-
-Found a bug or have an idea? [Open an issue](https://github.com/AlsammanAlsamman/SciLibra/issues).
-
-</td>
-</tr>
-</table>
 
 ## 📄 License
 
