@@ -148,6 +148,17 @@ NEW_PDF = make_pdf(os.path.join(DATA, "pdfs", "Offline Paper.pdf"), "Body", doi=
 
 # ---------------------------------------------------------------- steps
 def s_start():
+    # the start-up screen (logo + loading ring) covers the window, then fades away
+    from scilibra.gui.splash import Splash
+    if app.splash is not None:
+        assert isinstance(Window.children[0], Splash) or popups()
+        shot("splash")
+    for _ in range(60):
+        if app.splash is None:
+            break
+        yield 0.1
+    assert app.splash is None and not any(isinstance(w, Splash) for w in Window.children)
+    assert app.library is not None
     close_all()  # welcome / upgrade message
     yield FRAME
     shot("start")
@@ -844,11 +855,26 @@ def s_statistics_help_about():
     yield FRAME
     shot("statistics")
     close_all()
+    from scilibra.gui.helpcenter import HelpCenter
     app.show_help()
     yield FRAME
+    center = top(HelpCenter)
+    assert center.page == "start" and len(center.ids.body.children) > 0
     shot("help")
-    close_all()
+    for item in list(center.nav):  # every topic opens with a real click
+        click(item)
+        yield FRAME
+        assert center.page == item.page and item.selected and center.ids.body.children
+    shot("help_about")
+    about = center.ids.body.children[0]
+    assert about.photo.endswith("author.png") and os.path.isfile(about.photo)
+    assert len(about.ids.emails.children) == 3
+    click(button(center, "Close"))
+    yield FRAME
+    assert not popups()
     app.show_about()
+    yield FRAME
+    assert top(HelpCenter).page == "about"
     close_all()
 
 
@@ -1009,7 +1035,7 @@ def next_step():
         run_step(queue.pop(0))
 
 
-Clock.schedule_once(lambda _dt: next_step(), 1.0)
+Clock.schedule_once(lambda _dt: next_step(), 0.6)
 app.run()
 shutil.rmtree(WORK, ignore_errors=True)
 print(f"\n{len(STEPS) - len(failures)}/{len(STEPS)} steps passed" + (f"; failed: {failures}" if failures else ""))

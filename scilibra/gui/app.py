@@ -38,6 +38,8 @@ from .dialogs import ConfirmDialog, FileDialog, MessageDialog, ProgressDialog, T
 from .editor import ArticleEditor
 from .viewer import PdfViewer, fill_annotation_list
 from .drive import DriveController
+from .splash import INTRO_SECONDS, Splash
+from .helpcenter import HelpCenter
 
 log = logging.getLogger(__name__)
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -121,6 +123,7 @@ class SciLibraApp(App):
         self._busy = False
         self.drive = None
         self._restart = False
+        self.splash = None
         theme.apply(os.environ.get("SCILIBRA_THEME") or self.settings.theme)
 
     # ------------------------------------------------------------------ lifecycle
@@ -134,9 +137,20 @@ class SciLibraApp(App):
         return root
 
     def on_start(self):
+        if os.environ.get("SCILIBRA_NO_SPLASH"):
+            self._load()
+            return
+        # Show the logo with its loading ring first, then open the library once it is on screen.
+        self.splash = Splash(icon=self.icon, status="Opening your library...")
+        self.splash.show()
+        Clock.schedule_once(lambda _dt: self._load(), INTRO_SECONDS)
+
+    def _load(self):
         path, message = resolve_library_path(self.settings, self.explicit_library)
         self.open_library(path, notice=message)
         self.drive = DriveController(self)
+        if self.splash is not None:
+            self.splash.finish(lambda: setattr(self, "splash", None))
 
     def on_stop(self):
         if self.drive is not None:
@@ -970,16 +984,10 @@ class SciLibraApp(App):
                      second, confirm_text="Continue...", danger=True)
 
     def show_about(self):
-        self.message("About SciLibra", f"SciLibra {__version__}\n\n"
-                     "Free and open-source manager for scientific articles.\n\n"
-                     "Created by Alsamman M. Alsamman\n"
-                     "smahmoud [at] ageri.sci.eg  ·  A.Alsamman [at] cgiar.org  ·  SammanMohammed [at] gmail.com\n\n"
-                     "License: MIT - https://opensource.org/licenses/MIT\n"
-                     "https://github.com/AlsammanAlsamman/SciLibra\n\n"
-                     f"Library file: {self.library.path if self.library else '-'}")
+        self.show_help("about")
 
-    def show_help(self):
-        self.message("How to use SciLibra", HELP_TEXT)
+    def show_help(self, page="start"):
+        HelpCenter(page=page, library_path=self.library.path if self.library else "-").open()
 
     # ------------------------------------------------------------------ keyboard
     def _on_key_down(self, _window, key, _scancode, codepoint, modifiers):
@@ -1053,48 +1061,6 @@ MENUS = {
         ("About SciLibra", "show_about"),
     ],
 }
-
-HELP_TEXT = """Getting articles into SciLibra
-  • Add › Import BibTeX file - PDFs named <key>.pdf next to the .bib file are linked automatically.
-  • Add › Paste BibTeX - paste entries copied from Google Scholar, a journal site, etc.
-  • Add › Add PDFs / Add folder of PDFs - the DOI is read from each PDF and the details are
-    downloaded from Crossref (needs internet). Without internet the PDF title is used.
-  • Add › New article - fill in the form yourself (or type a DOI and press Fetch).
-
-Finding articles
-  • Group by (left) - browse by keywords, tag groups, authors, year or journal. Click a group to
-    open it and "Back" (or Esc) to return.
-  • Filter box - narrows the list as you type.
-  • Search box (top) - searches titles, authors, abstracts, keywords, comments... Separate several
-    terms with ';' (any term matches, or tick "All terms" in Search options).
-
-Working with an article
-  • Open PDF (or Enter / double-click) shows it in the built-in reader, at the page where you stopped.
-    Scroll, zoom (Ctrl+wheel, +/-, Fit), go to a page, find text (Ctrl+F), table of contents, Night mode.
-    "External" opens it in your usual PDF application instead.
-  • Annotate in the reader (saved inside the PDF, visible in any PDF reader; the original is backed up
-    before the first change):
-      Highlight (H), Underline (U), Strike (S): drag over text   ·  Note (N): click to add a sticky note
-      Text box (B), Draw (D), Rect (R), Circle (O), Arrow (A)    ·  Eraser (E): click an annotation
-      Select (V): click an annotation to edit its note/colour or delete it  ·  Ctrl+Z: undo
-      Text (T): select text, then Copy, Copy + citation ("..." (Xu et al., 2024, p. 5)), highlight it,
-      or save it as a comment.  Colours: pick one of the swatches before annotating.
-  • Notes panel: every highlight and note, click to jump there; "Export notes" writes Markdown.
-  • Highlights & notes: the annotations you made in the PDF are listed under the details. Click one
-    to jump to it in the viewer; "Save as comments" copies them to the article's comments.
-  • Attach PDF, Edit, Copy BibTeX, Delete.
-  • Comments - type in the box under the details and press Add.
-  • Edit › Pick... - choose keywords / tag groups from the ones already used in the library.
-
-Library menu
-  • Link PDF folder - connects PDFs named <key>.pdf in a folder (and sub-folders) to articles.
-  • Articles without PDF, Articles with PDF annotations, Read annotations of all PDFs (makes them
-    searchable), Find duplicates, Statistics, Export BibTeX, Create previews.
-
-Keyboard
-  Ctrl+F search · Ctrl+L filter list · Ctrl+I import BibTeX · Ctrl+N new article
-  Ctrl+E edit · Ctrl+O / Enter open PDF · ↑/↓ move in the list · Esc back"""
-
 
 def open_with_system(path: str):
     """Open a file or folder with the default application."""

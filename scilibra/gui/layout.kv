@@ -1,6 +1,8 @@
 #:kivy 2.1
 #:import theme scilibra.gui.theme
 #:import dp kivy.metrics.dp
+#:import math math
+#:import webbrowser webbrowser
 #:import widgets scilibra.gui.widgets
 
 # ---------------------------------------------------------------- basic widgets
@@ -1765,3 +1767,537 @@
                 text_size: self.size
                 halign: 'right'
                 valign: 'middle'
+
+# ---------------------------------------------------------------- start-up screen
+#:set SPLASH_LOGO 168
+#:set SPLASH_RING 104
+<Splash>:
+    canvas.before:
+        Color:
+            rgba: 1, 1, 1, 1
+        Rectangle:
+            pos: self.pos
+            size: self.size
+            texture: theme.gradient()
+        # soft light behind the logo (three layers fake a radial glow)
+        Color:
+            rgba: 1, 1, 1, 0.05
+        Ellipse:
+            pos: self.center_x - dp(210), self.center_y + dp(40) - dp(210)
+            size: dp(420), dp(420)
+        Ellipse:
+            pos: self.center_x - dp(165), self.center_y + dp(40) - dp(165)
+            size: dp(330), dp(330)
+        Ellipse:
+            pos: self.center_x - dp(128), self.center_y + dp(40) - dp(128)
+            size: dp(256), dp(256)
+    canvas:
+        # ring track
+        Color:
+            rgba: 1, 1, 1, 0.18
+        Line:
+            circle: self.center_x, self.center_y + dp(40), dp(SPLASH_RING) * self.logo_scale
+            width: dp(4)
+        # rotating comet on the track
+        Color:
+            rgba: 1, 1, 1, 0.35
+        Line:
+            circle: self.center_x, self.center_y + dp(40), dp(SPLASH_RING) * self.logo_scale, self.spin, self.spin + 50
+            width: dp(4)
+            cap: 'round'
+        # progress arc
+        Color:
+            rgba: 1, 1, 1, 1
+        Line:
+            circle: self.center_x, self.center_y + dp(40), dp(SPLASH_RING) * self.logo_scale, 0, max(1, 360 * self.progress)
+            width: dp(5)
+            cap: 'round'
+        # glowing dot at the end of the arc
+        Color:
+            rgba: 1, 1, 1, 0.35
+        Ellipse:
+            pos: self.center_x + dp(SPLASH_RING) * self.logo_scale * math.sin(math.radians(360 * self.progress)) - dp(9), self.center_y + dp(40) + dp(SPLASH_RING) * self.logo_scale * math.cos(math.radians(360 * self.progress)) - dp(9)
+            size: dp(18), dp(18)
+        Color:
+            rgba: 1, 1, 1, 1
+        Ellipse:
+            pos: self.center_x + dp(SPLASH_RING) * self.logo_scale * math.sin(math.radians(360 * self.progress)) - dp(5), self.center_y + dp(40) + dp(SPLASH_RING) * self.logo_scale * math.cos(math.radians(360 * self.progress)) - dp(5)
+            size: dp(10), dp(10)
+        # logo: white disc with shadow, the round icon inside
+        Color:
+            rgba: 0.08, 0.02, 0.25, 0.35
+        BoxShadow:
+            pos: self.center_x - dp(SPLASH_LOGO / 2) * self.logo_scale, self.center_y + dp(40) - dp(SPLASH_LOGO / 2) * self.logo_scale
+            size: dp(SPLASH_LOGO) * self.logo_scale, dp(SPLASH_LOGO) * self.logo_scale
+            offset: 0, -dp(6)
+            blur_radius: dp(28)
+            border_radius: [dp(SPLASH_LOGO / 2) * self.logo_scale] * 4
+        Color:
+            rgba: 1, 1, 1, 1
+        Ellipse:
+            pos: self.center_x - dp(SPLASH_LOGO / 2) * self.logo_scale, self.center_y + dp(40) - dp(SPLASH_LOGO / 2) * self.logo_scale
+            size: dp(SPLASH_LOGO) * self.logo_scale, dp(SPLASH_LOGO) * self.logo_scale
+        Ellipse:
+            pos: self.center_x - dp(SPLASH_LOGO / 2 - 5) * self.logo_scale, self.center_y + dp(40) - dp(SPLASH_LOGO / 2 - 5) * self.logo_scale
+            size: dp(SPLASH_LOGO - 10) * self.logo_scale, dp(SPLASH_LOGO - 10) * self.logo_scale
+            source: root.icon
+    Label:
+        text: '[b]SciLibra[/b]'
+        markup: True
+        font_size: '34sp'
+        color: 1, 1, 1, 1
+        size_hint: None, None
+        size: self.texture_size
+        x: root.center_x - self.width / 2
+        top: root.center_y + dp(40) - dp(SPLASH_RING) - dp(40)
+    Label:
+        text: 'Your library of scientific articles'
+        font_size: '15sp'
+        color: 1, 1, 1, 0.82
+        size_hint: None, None
+        size: self.texture_size
+        x: root.center_x - self.width / 2
+        top: root.center_y + dp(40) - dp(SPLASH_RING) - dp(90)
+    Label:
+        text: '{}   {}%'.format(root.status, int(round(root.progress * 100)))
+        font_size: '13sp'
+        color: 1, 1, 1, 0.7
+        size_hint: None, None
+        size: self.texture_size
+        x: root.center_x - self.width / 2
+        y: root.y + dp(36)
+
+# ---------------------------------------------------------------- help center
+<HelpCenter>:
+    size_hint: 0.9, 0.92
+    background: theme.ROUNDED
+    border: theme.ROUNDED_BORDER
+    background_color: theme.BG
+    overlay_color: 0.05, 0.03, 0.12, 0.45
+    BoxLayout:
+        # sidebar on the gradient
+        BoxLayout:
+            orientation: 'vertical'
+            size_hint_x: None
+            width: dp(250)
+            padding: dp(14), dp(18)
+            spacing: dp(4)
+            canvas.before:
+                Color:
+                    rgba: 1, 1, 1, 1
+                RoundedRectangle:
+                    pos: self.pos
+                    size: self.size
+                    radius: [dp(22), 0, 0, dp(22)]
+                    texture: theme.gradient()
+            BoxLayout:
+                size_hint_y: None
+                height: dp(64)
+                spacing: dp(12)
+                padding: dp(6), 0
+                Widget:
+                    size_hint: None, None
+                    size: dp(52), dp(52)
+                    pos_hint: {'center_y': 0.5}
+                    canvas:
+                        Color:
+                            rgba: 1, 1, 1, 1
+                        Ellipse:
+                            pos: self.pos
+                            size: self.size
+                        Ellipse:
+                            pos: self.x + dp(3), self.y + dp(3)
+                            size: self.width - dp(6), self.height - dp(6)
+                            source: app.icon
+                BoxLayout:
+                    orientation: 'vertical'
+                    Label:
+                        text: '[b]Help center[/b]'
+                        markup: True
+                        font_size: '19sp'
+                        color: 1, 1, 1, 1
+                        text_size: self.size
+                        valign: 'bottom'
+                    Label:
+                        text: 'SciLibra ' + root.version
+                        font_size: '12sp'
+                        color: 1, 1, 1, 0.8
+                        text_size: self.size
+                        valign: 'top'
+            Widget:
+                size_hint_y: None
+                height: dp(12)
+            BoxLayout:
+                id: nav_box
+                orientation: 'vertical'
+                size_hint_y: None
+                height: self.minimum_height
+                spacing: dp(4)
+            Widget:
+            BarButton:
+                text: 'Close'
+                on_release: root.dismiss()
+        # page
+        BoxLayout:
+            orientation: 'vertical'
+            BoxLayout:
+                size_hint_y: None
+                height: dp(118)
+                orientation: 'vertical'
+                padding: dp(32), dp(22), dp(32), dp(20)
+                canvas.before:
+                    Color:
+                        rgba: root.page_tint
+                    RoundedRectangle:
+                        pos: self.pos
+                        size: self.size
+                        radius: [0, dp(22), 0, 0]
+                    # decorative circles (kept inside the banner)
+                    Color:
+                        rgba: 1, 1, 1, 0.12
+                    Ellipse:
+                        pos: self.right - dp(118), self.y + dp(14)
+                        size: dp(90), dp(90)
+                    Color:
+                        rgba: 1, 1, 1, 0.08
+                    Ellipse:
+                        pos: self.right - dp(188), self.y + dp(10)
+                        size: dp(56), dp(56)
+                    Ellipse:
+                        pos: self.right - dp(52), self.top - dp(40)
+                        size: dp(28), dp(28)
+                Label:
+                    text: '[b]' + root.page_title + '[/b]'
+                    markup: True
+                    font_size: '28sp'
+                    color: 1, 1, 1, 1
+                    text_size: self.size
+                    valign: 'bottom'
+                Label:
+                    text: root.page_subtitle
+                    font_size: '15sp'
+                    color: 1, 1, 1, 0.88
+                    text_size: self.size
+                    valign: 'top'
+                    size_hint_y: None
+                    height: dp(26)
+            ScrollView:
+                id: scroll
+                do_scroll_x: False
+                bar_width: dp(6)
+                BoxLayout:
+                    id: body
+                    orientation: 'vertical'
+                    size_hint_y: None
+                    height: self.minimum_height
+                    padding: dp(28), dp(22), dp(28), dp(28)
+                    spacing: dp(16)
+
+<HelpNavItem>:
+    size_hint_y: None
+    height: dp(44)
+    padding: dp(10), 0
+    spacing: dp(12)
+    canvas.before:
+        Color:
+            rgba: (1, 1, 1, 0.24) if self.selected else ((1, 1, 1, 0.12) if self.hovered or self.state == 'down' else (0, 0, 0, 0))
+        RoundedRectangle:
+            pos: self.pos
+            size: self.size
+            radius: [dp(22)]
+    Label:
+        text: '[b]' + root.text[:1] + '[/b]'
+        markup: True
+        font_size: '13sp'
+        color: root.tint
+        size_hint: None, None
+        size: dp(28), dp(28)
+        pos_hint: {'center_y': 0.5}
+        canvas.before:
+            Color:
+                rgba: 1, 1, 1, 1 if root.selected else 0.85
+            Ellipse:
+                pos: self.pos
+                size: self.size
+    Label:
+        text: root.text
+        color: 1, 1, 1, 1
+        bold: root.selected
+        font_size: '14sp'
+        text_size: self.size
+        valign: 'middle'
+
+<HelpCard@BoxLayout>:
+    title: ''
+    orientation: 'vertical'
+    size_hint_y: None
+    height: self.minimum_height
+    padding: dp(22), dp(18)
+    spacing: dp(14)
+    canvas.before:
+        Color:
+            rgba: theme.SHADOW
+        BoxShadow:
+            pos: self.pos
+            size: self.size
+            offset: 0, -dp(2)
+            blur_radius: dp(12)
+            border_radius: [dp(16)] * 4
+        Color:
+            rgba: theme.PANEL
+        RoundedRectangle:
+            pos: self.pos
+            size: self.size
+            radius: [dp(16)]
+    TLabel:
+        text: '[b]' + root.title + '[/b]' if root.title else ''
+        font_size: '16sp'
+        height: self.texture_size[1] if root.title else 0
+    BoxLayout:
+        id: content
+        orientation: 'vertical'
+        size_hint_y: None
+        height: self.minimum_height
+        spacing: dp(14)
+
+<HelpStep@BoxLayout>:
+    number: ''
+    heading: ''
+    text: ''
+    tint: 0, 0, 0, 1
+    size_hint_y: None
+    height: max(dp(34), texts.height)
+    spacing: dp(14)
+    Label:
+        text: '[b]' + root.number + '[/b]'
+        markup: True
+        color: 1, 1, 1, 1
+        font_size: '14sp'
+        size_hint: None, None
+        size: dp(32), dp(32)
+        pos_hint: {'top': 1}
+        canvas.before:
+            Color:
+                rgba: root.tint
+            Ellipse:
+                pos: self.pos
+                size: self.size
+    BoxLayout:
+        id: texts
+        orientation: 'vertical'
+        size_hint_y: None
+        height: self.minimum_height
+        pos_hint: {'top': 1}
+        spacing: dp(3)
+        TLabel:
+            text: '[b]' + root.heading + '[/b]'
+            font_size: '15sp'
+        TLabel:
+            text: root.text
+            color: theme.MUTED
+
+<HelpLine@BoxLayout>:
+    text: ''
+    tint: 0, 0, 0, 1
+    size_hint_y: None
+    height: line.height
+    spacing: dp(12)
+    Widget:
+        size_hint_x: None
+        width: dp(8)
+        canvas:
+            Color:
+                rgba: root.tint
+            Ellipse:
+                pos: self.x, self.top - dp(13)
+                size: dp(8), dp(8)
+    TLabel:
+        id: line
+        text: root.text
+
+<HelpKey@BoxLayout>:
+    keys: ''
+    text: ''
+    size_hint_y: None
+    height: dp(32)
+    spacing: dp(12)
+    BoxLayout:
+        size_hint_x: None
+        width: dp(170)
+        Label:
+            text: root.keys
+            bold: True
+            font_size: '13sp'
+            color: theme.TEXT
+            size_hint_x: None
+            width: self.texture_size[0] + dp(22)
+            canvas.before:
+                Color:
+                    rgba: theme.OUTLINE
+                RoundedRectangle:
+                    pos: self.x, self.y + dp(1)
+                    size: self.width, self.height - dp(2)
+                    radius: [dp(8)]
+                Color:
+                    rgba: theme.BUTTON
+                RoundedRectangle:
+                    pos: self.x, self.y + dp(3)
+                    size: self.width, self.height - dp(4)
+                    radius: [dp(8)]
+        Widget:
+    Label:
+        text: root.text
+        color: theme.TEXT
+        font_size: '14sp'
+        text_size: self.size
+        valign: 'middle'
+
+<HelpChip@FlatButton>:
+    size_hint_x: None
+    width: self.texture_size[0] + dp(32)
+    font_size: '13sp'
+
+<HelpAbout@BoxLayout>:
+    photo: ''
+    icon: ''
+    author: ''
+    version: ''
+    library_path: ''
+    orientation: 'vertical'
+    size_hint_y: None
+    height: self.minimum_height
+    spacing: dp(16)
+    # hero card with the author's photo
+    BoxLayout:
+        orientation: 'vertical'
+        size_hint_y: None
+        height: dp(300)
+        padding: dp(24), dp(26), dp(24), dp(22)
+        spacing: dp(6)
+        canvas.before:
+            Color:
+                rgba: theme.SHADOW
+            BoxShadow:
+                pos: self.pos
+                size: self.size
+                offset: 0, -dp(3)
+                blur_radius: dp(16)
+                border_radius: [dp(18)] * 4
+            Color:
+                rgba: 1, 1, 1, 1
+            RoundedRectangle:
+                pos: self.pos
+                size: self.size
+                radius: [dp(18)]
+                texture: theme.gradient()
+            Color:
+                rgba: 1, 1, 1, 0.08
+            Ellipse:
+                pos: self.x + dp(24), self.top - dp(124)
+                size: dp(100), dp(100)
+            Ellipse:
+                pos: self.right - dp(184), self.y + dp(20)
+                size: dp(160), dp(160)
+        Widget:
+            size_hint_y: None
+            height: dp(156)
+            canvas:
+                Color:
+                    rgba: 0.08, 0.02, 0.25, 0.4
+                BoxShadow:
+                    pos: self.center_x - dp(76), self.y
+                    size: dp(152), dp(152)
+                    offset: 0, -dp(4)
+                    blur_radius: dp(20)
+                    border_radius: [dp(76)] * 4
+                Color:
+                    rgba: 1, 1, 1, 1
+                Ellipse:
+                    pos: self.center_x - dp(76), self.y
+                    size: dp(152), dp(152)
+                Ellipse:
+                    pos: self.center_x - dp(71), self.y + dp(5)
+                    size: dp(142), dp(142)
+                    source: root.photo
+        Label:
+            text: '[b]' + root.author + '[/b]'
+            markup: True
+            font_size: '24sp'
+            color: 1, 1, 1, 1
+            size_hint_y: None
+            height: dp(42)
+            text_size: self.size
+            halign: 'center'
+            valign: 'bottom'
+        Label:
+            text: 'Creator of SciLibra'
+            font_size: '15sp'
+            color: 1, 1, 1, 0.85
+            size_hint_y: None
+            height: dp(24)
+            text_size: self.size
+            halign: 'center'
+    HelpCard:
+        title: 'Get in touch'
+        StackLayout:
+            id: emails
+            size_hint_y: None
+            height: self.minimum_height
+            spacing: dp(8)
+        BoxLayout:
+            size_hint_y: None
+            height: dp(40)
+            spacing: dp(8)
+            AccentButton:
+                text: 'SciLibra on GitHub'
+                size_hint_x: None
+                width: dp(190)
+                on_release: webbrowser.open('https://github.com/AlsammanAlsamman/SciLibra')
+            FlatButton:
+                text: 'Report a problem'
+                size_hint_x: None
+                width: dp(170)
+                on_release: webbrowser.open('https://github.com/AlsammanAlsamman/SciLibra/issues')
+            Widget:
+    HelpCard:
+        title: 'About SciLibra'
+        BoxLayout:
+            size_hint_y: None
+            height: max(dp(72), about_text.height)
+            spacing: dp(18)
+            Widget:
+                size_hint: None, None
+                size: dp(72), dp(72)
+                pos_hint: {'top': 1}
+                canvas:
+                    Color:
+                        rgba: theme.OUTLINE
+                    Ellipse:
+                        pos: self.pos
+                        size: self.size
+                    Color:
+                        rgba: 1, 1, 1, 1
+                    Ellipse:
+                        pos: self.x + dp(2), self.y + dp(2)
+                        size: self.width - dp(4), self.height - dp(4)
+                        source: root.icon
+            BoxLayout:
+                id: about_text
+                orientation: 'vertical'
+                size_hint_y: None
+                height: self.minimum_height
+                pos_hint: {'top': 1}
+                spacing: dp(4)
+                TLabel:
+                    text: '[b]SciLibra ' + root.version + '[/b]'
+                    font_size: '17sp'
+                TLabel:
+                    text: 'Free and open-source manager for scientific articles: BibTeX + PDF library with grouping, search, a PDF reader with annotations, and Google Drive backup.'
+                    color: theme.MUTED
+                TLabel:
+                    text: 'License: [b]MIT[/b]'
+                    color: theme.MUTED
+                TLabel:
+                    text: 'Library file: ' + root.library_path
+                    font_size: '12sp'
+                    color: theme.MUTED
