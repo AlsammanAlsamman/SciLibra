@@ -16,7 +16,13 @@ venv/
 # Libraries and their automatic backups (your library lives in ~/.local/share/scilibra)
 *.db
 *.db.v*-backup-*
-!scilibraLibrary.db
 
 # Kivy / test output
 gui-shots/
+
+# Google sign-in: never commit OAuth client JSON files or saved sign-ins
+# (the client shipped with SciLibra is scilibra/assets/google_client.dat, see core/gdrive.py)
+client_secret*.json
+google-client.json
+google-token.json
+scilibra/assets/google_client.json

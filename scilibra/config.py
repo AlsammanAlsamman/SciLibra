@@ -34,6 +34,7 @@ class Settings:
     last_folder: str = ""
     recent_libraries: list[str] = field(default_factory=list)
     drive_auto_sync: bool = True
+    theme: str = "light"
 
     @staticmethod
     def file() -> str:

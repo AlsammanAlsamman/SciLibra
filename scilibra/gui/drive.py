@@ -60,7 +60,7 @@ class DriveController:
     def __init__(self, app):
         self.app = app
         bundled = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "assets",
-                               "google_client.json")
+                               "google_client.dat")
         self.account = gdrive.DriveAccount(data_dir(), bundled_client=bundled)
         self.syncing = False
         self.dialog = None

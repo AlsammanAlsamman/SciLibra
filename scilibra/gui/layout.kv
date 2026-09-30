@@ -1,27 +1,80 @@
 #:kivy 2.1
 #:import theme scilibra.gui.theme
 #:import dp kivy.metrics.dp
+#:import widgets scilibra.gui.widgets
 
 # ---------------------------------------------------------------- basic widgets
-<FlatButton@Button>:
+# Buttons are pills (Material 3); `bg` is the fill colour, text colour follows it automatically.
+<FlatButton@HoverButton>:
     bg: theme.BUTTON
+    fg: theme.on(self.bg)
+    radius: dp(100)
     background_normal: ''
     background_down: ''
     background_disabled_normal: ''
-    background_color: theme.darker(self.bg, 0.08) if self.state == 'down' else self.bg
-    color: theme.TEXT
-    disabled_color: theme.MUTED
+    background_disabled_down: ''
+    background_color: 0, 0, 0, 0
+    color: self.fg
+    disabled_color: self.fg
     opacity: 0.45 if self.disabled else 1
     font_size: '14sp'
     size_hint_y: None
-    height: dp(36)
-    padding: dp(12), 0
+    height: dp(38)
+    padding: dp(14), 0
+    elevation: 0
+    canvas.before:
+        Color:
+            rgba: theme.alpha(theme.SHADOW, theme.SHADOW[3] * self.elevation * (1.5 if self.hovered else 1)) if not self.disabled else (0, 0, 0, 0)
+        BoxShadow:
+            pos: self.pos
+            size: self.size
+            offset: 0, -dp(2)
+            blur_radius: (dp(10) if self.hovered else dp(6)) if self.elevation else 0
+            border_radius: [min(self.radius, self.height / 2)] * 4
+        Color:
+            rgba: theme.darker(self.bg, 0.10) if self.state == 'down' else (theme.hover(self.bg) if self.hovered else self.bg)
+        RoundedRectangle:
+            pos: self.pos
+            size: self.size
+            radius: [min(self.radius, self.height / 2)]
 
 <AccentButton@FlatButton>:
     bg: theme.ACCENT
+    bold: True
+    elevation: 1
 
 <DangerButton@FlatButton>:
-    bg: theme.DANGER
+    bg: theme.DANGER_CONTAINER
+    fg: theme.DANGER
+
+# transparent button for the app bar (white text on the gradient)
+<BarButton@FlatButton>:
+    bg: 1, 1, 1, 0
+    fg: theme.ON_BAR
+    canvas.before:
+        Color:
+            rgba: (1, 1, 1, 0.28) if self.state == 'down' else ((1, 1, 1, 0.16) if self.hovered else (1, 1, 1, 0))
+        RoundedRectangle:
+            pos: self.pos
+            size: self.size
+            radius: [self.height / 2]
+
+# item of a drop-down menu
+<MenuItem@FlatButton>:
+    bg: theme.PANEL
+    radius: dp(8)
+    halign: 'left'
+    height: dp(40)
+
+<MenuSeparator@Widget>:
+    size_hint_y: None
+    height: dp(9)
+    canvas:
+        Color:
+            rgba: theme.OUTLINE
+        Rectangle:
+            pos: self.x + dp(10), self.center_y
+            size: self.width - dp(20), dp(1)
 
 <TLabel@Label>:
     color: theme.TEXT
@@ -35,6 +88,11 @@
     color: theme.MUTED
     font_size: '13sp'
 
+<SectionLabel@TLabel>:
+    color: theme.ACCENT
+    bold: True
+    font_size: '15sp'
+
 <FieldLabel@Label>:
     color: theme.MUTED
     font_size: '13sp'
@@ -45,64 +103,194 @@
     valign: 'middle'
     padding: dp(8), 0
 
-<DarkInput@TextInput>:
+<DarkInput@RoundedInput>:
     background_normal: ''
     background_active: ''
-    background_color: theme.INPUT
+    background_disabled_normal: ''
+    background_color: 0, 0, 0, 0
+    fill: theme.INPUT
+    focus_color: theme.ACCENT
     foreground_color: theme.TEXT
+    disabled_foreground_color: theme.MUTED
     cursor_color: theme.ACCENT
-    selection_color: 0.26, 0.52, 0.96, 0.45
+    cursor_width: dp(2)
+    selection_color: theme.alpha(theme.ACCENT, 0.3)
     hint_text_color: theme.MUTED
-    padding: dp(10), dp(9)
+    padding: dp(14), dp(10)
     font_size: '14sp'
     multiline: False
     write_tab: False
     size_hint_y: None
-    height: dp(38)
+    height: dp(40)
 
+# rounded search field (pill)
+<SearchInput@DarkInput>:
+    fill: theme.PANEL
+    radius: dp(22)
+    padding: dp(18), dp(11)
+    height: dp(42)
+
+# a card: rounded surface with a soft shadow
 <Panel@BoxLayout>:
     canvas.before:
+        Color:
+            rgba: theme.SHADOW
+        BoxShadow:
+            pos: self.pos
+            size: self.size
+            offset: 0, -dp(2)
+            blur_radius: dp(14)
+            border_radius: [dp(18)] * 4
         Color:
             rgba: theme.PANEL
         RoundedRectangle:
             pos: self.pos
             size: self.size
-            radius: [dp(6)]
+            radius: [dp(18)]
 
-<DarkSpinner@Spinner>:
+<DarkSpinner@HoverBehavior+Spinner>:
     background_normal: ''
     background_down: ''
-    background_color: theme.BUTTON
+    background_disabled_normal: ''
+    background_color: 0, 0, 0, 0
     color: theme.TEXT
     size_hint_y: None
-    height: dp(36)
+    height: dp(38)
     font_size: '14sp'
     option_cls: 'DarkSpinnerOption'
+    canvas.before:
+        Color:
+            rgba: theme.darker(theme.BUTTON, 0.08) if self.state == 'down' else (theme.hover(theme.BUTTON) if self.hovered else theme.BUTTON)
+        RoundedRectangle:
+            pos: self.pos
+            size: self.size
+            radius: [self.height / 2]
+    canvas.after:
+        Color:
+            rgba: theme.MUTED
+        Triangle:
+            points: self.right - dp(22), self.center_y + dp(2.5), self.right - dp(12), self.center_y + dp(2.5), self.right - dp(17), self.center_y - dp(3)
 
-<DarkSpinnerOption@SpinnerOption>:
+<DarkSpinnerOption@HoverBehavior+SpinnerOption>:
     background_normal: ''
-    background_color: theme.INPUT
+    background_down: ''
+    background_color: 0, 0, 0, 0
     color: theme.TEXT
-    height: dp(36)
+    height: dp(40)
+    canvas.before:
+        Color:
+            rgba: theme.ROW_SELECTED if self.state == 'down' else (theme.ROW if self.hovered else theme.PANEL)
+        RoundedRectangle:
+            pos: self.x + dp(4), self.y + dp(1)
+            size: self.width - dp(8), self.height - dp(2)
+            radius: [dp(8)]
+
+# menus (DropDown and Spinner lists): floating rounded card
+<DropDown>:
+    canvas.before:
+        Color:
+            rgba: theme.SHADOW
+        BoxShadow:
+            pos: self.pos
+            size: self.size
+            offset: 0, -dp(3)
+            blur_radius: dp(16)
+            border_radius: [dp(12)] * 4
+        Color:
+            rgba: theme.PANEL
+        RoundedRectangle:
+            pos: self.pos
+            size: self.size
+            radius: [dp(12)]
+
+<ScrollView>:
+    bar_color: theme.alpha(theme.MUTED, 0.55)
+    bar_inactive_color: theme.alpha(theme.MUTED, 0.25)
+
+# checkbox drawn in the theme colours (Kivy's default images are made for dark backgrounds)
+<CheckBox>:
+    color: 0, 0, 0, 0
+    canvas.after:
+        Color:
+            rgba: (theme.ACCENT if self.active else (0, 0, 0, 0)) if not self.disabled else theme.alpha(theme.MUTED, 0.4 if self.active else 0)
+        RoundedRectangle:
+            pos: int(self.center_x - dp(9)), int(self.center_y - dp(9))
+            size: dp(18), dp(18)
+            radius: [dp(9) if self.group else dp(4)]
+        Color:
+            rgba: (0, 0, 0, 0) if self.active else (theme.MUTED if not self.disabled else theme.alpha(theme.MUTED, 0.4))
+        Line:
+            rounded_rectangle: int(self.center_x - dp(9)), int(self.center_y - dp(9)), dp(18), dp(18), (dp(9) if self.group else dp(4))
+            width: dp(1.3)
+        Color:
+            rgba: theme.on(theme.ACCENT) if self.active else (0, 0, 0, 0)
+        Line:
+            points: self.center_x - dp(4.5), self.center_y + dp(0.3), self.center_x - dp(1.2), self.center_y - dp(3.2), self.center_x + dp(4.8), self.center_y + dp(3.4)
+            width: dp(1.6)
+            cap: 'round'
+            joint: 'round'
+
+# progress bar: rounded track with an accent fill
+<ThemedProgress@Widget>:
+    max: 100
+    value: 0
+    size_hint_y: None
+    height: dp(8)
+    canvas:
+        Color:
+            rgba: theme.ACCENT_CONTAINER
+        RoundedRectangle:
+            pos: self.pos
+            size: self.size
+            radius: [self.height / 2]
+        Color:
+            rgba: theme.ACCENT
+        RoundedRectangle:
+            pos: self.pos
+            size: (self.width * min(1, self.value / float(self.max)) if self.max else 0), self.height
+            radius: [self.height / 2]
 
 # ---------------------------------------------------------------- library list row
 <ListRow>:
     orientation: 'horizontal'
-    padding: dp(12), dp(6)
-    spacing: dp(8)
+    padding: dp(10), dp(6), dp(12), dp(6)
+    spacing: dp(12)
     canvas.before:
         Color:
-            rgba: theme.ROW_SELECTED if self.selected else (theme.darker(theme.ROW_GROUP if self.kind == 'group' else theme.ROW, 0.04) if self.state == 'down' else (theme.ROW_GROUP if self.kind == 'group' else theme.ROW))
-        Rectangle:
+            rgba: theme.ROW_SELECTED if self.selected else (theme.darker(theme.ROW_GROUP if self.kind == 'group' else theme.ROW, 0.05) if self.state == 'down' else (theme.hover(theme.ROW_GROUP if self.kind == 'group' else theme.ROW) if self.hovered else (theme.ROW_GROUP if self.kind == 'group' else theme.ROW)))
+        RoundedRectangle:
             pos: self.pos
             size: self.size
+            radius: [dp(14)]
+        Color:
+            rgba: theme.ACCENT if self.selected else (0, 0, 0, 0)
+        RoundedRectangle:
+            pos: self.x, self.y + dp(12)
+            size: dp(4), max(0, self.height - dp(24))
+            radius: [dp(2)]
+    # leading avatar: first letter on a coloured circle (folder-like square for groups)
+    Label:
+        size_hint: None, None
+        size: dp(38), dp(38)
+        pos_hint: {'center_y': 0.5}
+        text: theme.initials(root.title)
+        bold: True
+        font_size: '16sp'
+        color: 1, 1, 1, 1
+        canvas.before:
+            Color:
+                rgba: theme.avatar(root.title)
+            RoundedRectangle:
+                pos: self.pos
+                size: self.size
+                radius: [dp(12) if root.kind == 'group' else dp(19)]
     BoxLayout:
         orientation: 'vertical'
         Label:
             text: root.title
             color: theme.TEXT
             font_size: '14sp'
-            bold: root.kind == 'group'
+            bold: root.kind == 'group' or root.selected
             text_size: self.size
             halign: 'left'
             valign: 'middle'
@@ -121,30 +309,37 @@
             opacity: 1 if (root.subtitle or not root.has_pdf) else 0
     Label:
         text: root.count
-        color: theme.TEXT
-        font_size: '13sp'
+        color: theme.ACCENT if not root.selected else theme.on(theme.ACCENT)
+        bold: True
+        font_size: '12sp'
         size_hint_x: None
-        width: dp(44) if root.count else 0
+        width: max(dp(34), self.texture_size[0] + dp(18)) if root.count else 0
         canvas.before:
             Color:
-                rgba: (0.3, 0.42, 0.4, 1) if root.count else (0, 0, 0, 0)
+                rgba: (theme.ACCENT if root.selected else theme.ACCENT_CONTAINER) if root.count else (0, 0, 0, 0)
             RoundedRectangle:
-                pos: self.x, self.center_y - dp(11)
-                size: self.width, dp(22)
-                radius: [dp(11)]
+                pos: self.x, self.center_y - dp(12)
+                size: self.width, dp(24)
+                radius: [dp(12)]
 
 <CommentRow>:
     size_hint_y: None
-    height: max(dp(36), lbl.texture_size[1] + dp(14))
+    height: max(dp(40), lbl.texture_size[1] + dp(18))
     spacing: dp(8)
-    padding: dp(10), 0, 0, 0
+    padding: dp(14), 0, dp(6), 0
     canvas.before:
         Color:
             rgba: theme.ROW
         RoundedRectangle:
             pos: self.pos
             size: self.size
-            radius: [dp(4)]
+            radius: [dp(12)]
+        Color:
+            rgba: theme.ACCENT
+        RoundedRectangle:
+            pos: self.x, self.y + dp(8)
+            size: dp(3), max(0, self.height - dp(16))
+            radius: [dp(1.5)]
     Label:
         id: lbl
         text: root.text
@@ -155,7 +350,7 @@
     FlatButton:
         text: 'Remove'
         size_hint: None, None
-        width: dp(76)
+        width: dp(80)
         height: dp(30)
         font_size: '12sp'
         pos_hint: {'center_y': 0.5}
@@ -165,79 +360,105 @@
 <SciLibraRoot@BoxLayout>:
     orientation: 'vertical'
 
-    # toolbar
+    # app bar (gradient)
     BoxLayout:
         size_hint_y: None
-        height: dp(56)
-        padding: dp(12), dp(10)
-        spacing: dp(8)
+        height: dp(68)
+        padding: dp(16), dp(13)
+        spacing: dp(6)
         canvas.before:
             Color:
-                rgba: theme.PANEL
+                rgba: 1, 1, 1, 1
             Rectangle:
                 pos: self.pos
                 size: self.size
-        Image:
-            source: app.icon
+                texture: theme.gradient()
+        canvas.after:
+            Color:
+                rgba: theme.SHADOW
+            BoxShadow:
+                pos: self.x, self.y - dp(1)
+                size: self.width, dp(1)
+                offset: 0, -dp(2)
+                blur_radius: dp(8)
+        Widget:
             size_hint: None, None
-            size: dp(34), dp(34)
+            size: dp(42), dp(42)
             pos_hint: {'center_y': 0.5}
+            canvas:
+                Color:
+                    rgba: 1, 1, 1, 0.95
+                Ellipse:
+                    pos: self.pos
+                    size: self.size
+                Color:
+                    rgba: 1, 1, 1, 1
+                Ellipse:
+                    pos: self.x + dp(3), self.y + dp(3)
+                    size: self.width - dp(6), self.height - dp(6)
+                    source: app.icon
         Label:
             text: '[b]SciLibra[/b]'
             markup: True
-            color: theme.TEXT
-            font_size: '20sp'
+            color: theme.ON_BAR
+            font_size: '21sp'
             size_hint_x: None
-            width: dp(96)
-        FlatButton:
+            width: dp(104)
+        BarButton:
             text: 'Add'
             size_hint_x: None
-            width: dp(72)
+            width: dp(68)
             on_release: app.open_menu(self, 'add')
-        FlatButton:
+        BarButton:
             text: 'Library'
             size_hint_x: None
             width: dp(84)
             on_release: app.open_menu(self, 'library')
-        FlatButton:
+        BarButton:
             text: 'Help'
             size_hint_x: None
             width: dp(64)
             on_release: app.open_menu(self, 'help')
         Widget:
-        DarkInput:
+        SearchInput:
             id: search
-            hint_text: 'Search articles... (Ctrl+F)'
+            hint_text: 'Search articles...  (Ctrl+F)'
             size_hint_x: None
             width: dp(340)
+            pos_hint: {'center_y': 0.5}
             on_text_validate: app.search(self.text)
-        AccentButton:
-            text: 'Search'
-            size_hint_x: None
-            width: dp(80)
-            on_release: app.search(search.text)
         FlatButton:
+            text: 'Search'
+            bold: True
+            bg: theme.ON_BAR
+            fg: theme.BAR_1
+            size_hint_x: None
+            width: dp(84)
+            pos_hint: {'center_y': 0.5}
+            on_release: app.search(search.text)
+        BarButton:
             text: 'Options'
             size_hint_x: None
-            width: dp(80)
+            width: dp(84)
+            pos_hint: {'center_y': 0.5}
             on_release: app.search_options()
         DriveButton:
             on_release: app.drive.open_dialog() if app.drive else None
 
     # body
     BoxLayout:
-        padding: dp(10)
-        spacing: dp(10)
+        padding: dp(14)
+        spacing: dp(14)
 
         # left: groups / articles
         Panel:
             orientation: 'vertical'
             size_hint_x: 0.42
-            padding: dp(10)
-            spacing: dp(8)
+            padding: dp(12)
+            spacing: dp(10)
             BoxLayout:
                 size_hint_y: None
-                height: dp(36)
+                height: dp(38)
                 spacing: dp(8)
                 Label:
                     text: 'Group by'
@@ -254,7 +475,7 @@
                 height: dp(36)
                 spacing: dp(8)
                 FlatButton:
-                    text: '< Back' if app.can_go_back else ''
+                    text: '\u2039  Back' if app.can_go_back else ''
                     size_hint_x: None
                     width: dp(76) if app.can_go_back else 0
                     opacity: 1 if app.can_go_back else 0
@@ -262,6 +483,7 @@
                 Label:
                     text: app.breadcrumb
                     color: theme.TEXT
+                    font_size: '17sp'
                     bold: True
                     text_size: self.size
                     halign: 'left'
@@ -278,12 +500,13 @@
                     bar_width: dp(8)
                     scroll_type: ['bars', 'content']
                     RecycleBoxLayout:
-                        default_size: None, dp(56)
+                        default_size: None, dp(60)
                         default_size_hint: 1, None
                         size_hint_y: None
                         height: self.minimum_height
                         orientation: 'vertical'
-                        spacing: dp(2)
+                        spacing: dp(6)
+                        padding: 0, 0, dp(10), 0
                 Label:
                     text: ('Your library is empty.\n\nUse [b]Add[/b] to import a BibTeX file,\npaste BibTeX, or add PDF files.' if (app.library and app.library.count() == 0 and not list_filter.text) else 'Nothing to show.') if app.list_count == 0 else ''
                     markup: True
@@ -302,7 +525,7 @@
         # right: details
         Panel:
             orientation: 'vertical'
-            padding: dp(4)
+            padding: dp(6)
             ScrollView:
                 id: details_scroll
                 do_scroll_x: False
@@ -311,8 +534,8 @@
                     orientation: 'vertical'
                     size_hint_y: None
                     height: self.minimum_height
-                    padding: dp(16)
-                    spacing: dp(12)
+                    padding: dp(20), dp(18)
+                    spacing: dp(14)
                     TLabel:
                         text: '' if app.selected_key else 'Select an article on the left to see its details.\n\nTips: double-click (or Enter) opens the PDF, arrow keys move through the list, Esc goes back.'
                         color: theme.MUTED
@@ -334,7 +557,7 @@
                             spacing: dp(8)
                             TLabel:
                                 text: '[b]' + app.d_title + '[/b]'
-                                font_size: '20sp'
+                                font_size: '22sp'
                             TLabel:
                                 text: app.d_meta
                                 color: theme.MUTED
@@ -349,6 +572,14 @@
                             size: (dp(170), dp(220)) if app.d_thumb else (0, 0)
                             pos_hint: {'top': 1}
                             fit_mode: 'contain'
+                            canvas.before:
+                                Color:
+                                    rgba: theme.SHADOW if app.d_thumb else (0, 0, 0, 0)
+                                BoxShadow:
+                                    pos: self.center_x - self.norm_image_size[0] / 2, self.center_y - self.norm_image_size[1] / 2
+                                    size: self.norm_image_size
+                                    offset: 0, -dp(3)
+                                    blur_radius: dp(12)
                     TLabel:
                         text: app.d_body
                         on_ref_press: app.on_ref(args[1])
@@ -359,8 +590,8 @@
                         height: dp(30) if self.shown else 0
                         opacity: 1 if self.shown else 0
                         spacing: dp(8)
-                        TLabel:
-                            text: '[b]Highlights & notes in the PDF[/b]' + ('  ({})'.format(len(app.d_annotations)) if app.d_annotations else '')
+                        SectionLabel:
+                            text: 'Highlights & notes in the PDF' + ('  ({})'.format(len(app.d_annotations)) if app.d_annotations else '')
                             size_hint_y: None
                             height: dp(30)
                             valign: 'middle'
@@ -382,8 +613,8 @@
                         size_hint_y: None
                         height: self.minimum_height
                         spacing: dp(4)
-                    TLabel:
-                        text: '[b]Comments[/b]' if app.selected_key else ''
+                    SectionLabel:
+                        text: 'Comments' if app.selected_key else ''
                         height: (self.texture_size[1] if app.selected_key else 0)
                     BoxLayout:
                         id: comments_box
@@ -410,9 +641,15 @@
                             on_release: app.add_comment(comment_input.text)
             BoxLayout:
                 size_hint_y: None
-                height: dp(52)
-                padding: dp(10), dp(8)
+                height: dp(58)
+                padding: dp(12), dp(10)
                 spacing: dp(8)
+                canvas.before:
+                    Color:
+                        rgba: theme.OUTLINE
+                    Rectangle:
+                        pos: self.x + dp(12), self.top - dp(1)
+                        size: self.width - dp(24), dp(1)
                 AccentButton:
                     text: 'Open PDF'
                     disabled: not app.selected_key
@@ -445,14 +682,8 @@
     # status bar
     BoxLayout:
         size_hint_y: None
-        height: dp(26)
-        padding: dp(12), 0
-        canvas.before:
-            Color:
-                rgba: theme.PANEL
-            Rectangle:
-                pos: self.pos
-                size: self.size
+        height: dp(28)
+        padding: dp(18), 0, dp(18), dp(4)
         Label:
             text: app.status
             color: theme.TEXT
@@ -471,27 +702,32 @@
             shorten: True
             shorten_from: 'left'
 
-<DriveButton@ButtonBehavior+BoxLayout>:
+<DriveButton@HoverBehavior+ButtonBehavior+BoxLayout>:
     size_hint: None, None
-    size: dp(150), dp(36)
+    size: dp(154), dp(40)
     pos_hint: {'center_y': 0.5}
-    padding: dp(8), 0
+    padding: dp(12), 0
     spacing: dp(6)
     canvas.before:
         Color:
-            rgba: ((0.16, 0.5, 0.28, 1) if app.drive_connected else theme.BUTTON) if self.state == 'normal' else theme.darker((0.16, 0.5, 0.28, 1) if app.drive_connected else theme.BUTTON, 0.08)
+            rgba: (theme.SUCCESS if app.drive_connected else (1, 1, 1, 0.18 if self.hovered else 0.1)) if self.state == 'normal' else (theme.darker(theme.SUCCESS, 0.08) if app.drive_connected else (1, 1, 1, 0.3))
         RoundedRectangle:
             pos: self.pos
             size: self.size
-            radius: [dp(5)]
+            radius: [self.height / 2]
+        Color:
+            rgba: (1, 1, 1, 0) if app.drive_connected else (1, 1, 1, 0.45)
+        Line:
+            rounded_rectangle: self.x, self.y, self.width, self.height, self.height / 2
+            width: dp(1)
     Icon:
         icon: 'cloud'
-        color: (0.75, 1, 0.8, 1) if app.drive_connected else theme.MUTED
+        color: 1, 1, 1, 1
         size_hint_x: None
         width: dp(26)
     Label:
         text: ('Syncing...' if app.drive_syncing else 'Drive: on') if app.drive_connected else 'Google Drive'
-        color: theme.TEXT
+        color: 1, 1, 1, 1
         font_size: '14sp'
         bold: app.drive_connected
         text_size: self.size
@@ -566,11 +802,11 @@
                 spacing: dp(10)
                 canvas.before:
                     Color:
-                        rgba: 0.16, 0.5, 0.28, 1
+                        rgba: theme.SUCCESS
                     RoundedRectangle:
                         pos: self.pos
                         size: self.size
-                        radius: [dp(6)]
+                        radius: [dp(14)]
                 Icon:
                     icon: 'check'
                     color: 1, 1, 1, 1
@@ -632,10 +868,14 @@
 
 # ---------------------------------------------------------------- dialogs
 <BasePopup>:
-    title_size: '16sp'
-    separator_color: theme.ACCENT
-    background: ''
+    title_size: '19sp'
+    title_color: theme.TEXT
+    separator_color: theme.OUTLINE
+    separator_height: dp(1)
+    background: theme.ROUNDED
+    border: theme.ROUNDED_BORDER
     background_color: theme.PANEL
+    overlay_color: 0.05, 0.03, 0.12, 0.45
 
 <MessageDialog>:
     size_hint: 0.72, 0.72
@@ -738,11 +978,9 @@
             halign: 'left'
             valign: 'middle'
             shorten: True
-        ProgressBar:
+        ThemedProgress:
             max: root.maximum
             value: root.value
-            size_hint_y: None
-            height: dp(20)
         BoxLayout:
             size_hint_y: None
             height: dp(36)
@@ -784,6 +1022,8 @@
             multiselect: root.multiselect
             dirselect: root.mode == 'folder'
             on_submit: if root.mode == 'open': root.confirm()
+            on_entry_added: widgets.style_file_entry(args[1])
+            on_kv_post: widgets.style_file_chooser(self)
         Collapsible:
             shown: root.mode == 'save'
             size_hint_y: None
@@ -1080,10 +1320,12 @@
 <PdfPage>:
     canvas.before:
         Color:
-            rgba: 0, 0, 0, 0.35
-        Rectangle:
-            pos: self.x + dp(3), self.y - dp(3)
+            rgba: theme.SHADOW
+        BoxShadow:
+            pos: self.pos
             size: self.size
+            offset: 0, -dp(3)
+            blur_radius: dp(14)
         Color:
             rgba: 1, 1, 1, 1
         Rectangle:
@@ -1331,7 +1573,8 @@
                 size_hint_x: None
                 width: dp(6)
             DangerButton:
-                text: 'X   Close'
+                text: '\u00d7   Close'
+                bg: theme.DANGER
                 bold: True
                 size_hint_x: None
                 width: dp(96)
@@ -1379,7 +1622,7 @@
             spacing: dp(6)
             canvas.before:
                 Color:
-                    rgba: 0.18, 0.28, 0.45, 1
+                    rgba: theme.ACCENT_CONTAINER
                 Rectangle:
                     pos: self.pos
                     size: self.size
@@ -1515,7 +1758,7 @@
                 shorten: True
             Label:
                 text: 'All changes saved in the PDF' if root.modified else 'Changes are saved automatically'
-                color: (0.45, 0.85, 0.45, 1) if root.modified else theme.MUTED
+                color: theme.SUCCESS if root.modified else theme.MUTED
                 font_size: '12sp'
                 size_hint_x: None
                 width: dp(230)

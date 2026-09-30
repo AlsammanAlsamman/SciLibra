@@ -332,19 +332,16 @@ class PdfViewer(ModalView):
 
     def _menu(self, button, items, choose):
         """Drop-down under `button`: items are (icon or rgb, label, value)."""
-        menu = DropDown(auto_width=False, width=dp(190))
+        menu = DropDown(auto_width=False, width=dp(200))
+        menu.container.padding = dp(6)
         for icon, label, value in items:
-            line = BoxLayout(size_hint_y=None, height=dp(38), padding=(dp(6), dp(2)), spacing=dp(8))
-            with line.canvas.before:
-                Color(*theme.INPUT)
-                bg = Rectangle(pos=line.pos, size=line.size)
-            line.bind(pos=lambda w, _p, r=bg: setattr(r, "pos", w.pos), size=lambda w, _s, r=bg: setattr(r, "size", w.size))
+            line = BoxLayout(size_hint_y=None, height=dp(40), padding=(dp(4), dp(2)), spacing=dp(6))
             if isinstance(icon, str):
                 picture = IconButton(icon=icon, accent=self.color, size=(dp(34), dp(34)))
             else:
                 picture = ColorSwatch(rgb=list(icon), selected=value == self.color_name)
             picture.bind(on_release=lambda *_a, v=value: (menu.dismiss(), choose(v)))
-            text = Factory.FlatButton(text=label, halign="left", bg=theme.INPUT, height=dp(34))
+            text = Factory.MenuItem(text=label, height=dp(36))
             text.bind(size=lambda w, _s: setattr(w, "text_size", (w.width - dp(12), None)))
             text.bind(on_release=lambda *_a, v=value: (menu.dismiss(), choose(v)))
             line.add_widget(picture)

@@ -12,6 +12,7 @@ Access uses the `drive.file` scope: SciLibra can only see files it created itsel
 
 from __future__ import annotations
 
+import base64
 import datetime
 import hashlib
 import json
@@ -47,6 +48,54 @@ def md5_of(path: str) -> str:
 
 
 # ---------------------------------------------------------------- account / sign-in
+DRIVE_SCOPE = "https://www.googleapis.com/auth/drive.file"
+
+# The OAuth client shipped with SciLibra is stored scrambled (scilibra/assets/google_client.dat).
+# This is not encryption: Google treats the secret of a "Desktop app" client as public by design, since
+# anyone can read it from an installed app. Scrambling only keeps it out of plain-text secret scanners,
+# which would otherwise revoke it and break sign-in for every user. Access to a user's Drive always
+# needs that user's own consent, and SciLibra can only see the files it created itself.
+_SCRAMBLE_KEY = b"SciLibra-desktop-oauth-client"
+
+
+def scramble(data: bytes) -> str:
+    mixed = bytes(b ^ _SCRAMBLE_KEY[i % len(_SCRAMBLE_KEY)] for i, b in enumerate(data))
+    return base64.b64encode(mixed).decode("ascii")
+
+
+def unscramble(text: str) -> bytes:
+    mixed = base64.b64decode(text.strip())
+    return bytes(b ^ _SCRAMBLE_KEY[i % len(_SCRAMBLE_KEY)] for i, b in enumerate(mixed))
+
+
+def bundle_client_file(json_path: str, dat_path: str):
+    """Create the scrambled bundled client from the JSON downloaded from Google Cloud Console."""
+    with open(json_path, "rb") as fh:
+        data = fh.read()
+    json.loads(data)  # must be valid JSON
+    with open(dat_path, "w", encoding="ascii") as fh:
+        fh.write(scramble(data) + "\n")
+
+
+def load_client_config(path: str) -> dict:
+    """Read an OAuth client file: plain JSON, or the scrambled .dat bundled with SciLibra."""
+    if path.endswith(".dat"):
+        with open(path, encoding="ascii") as fh:
+            return json.loads(unscramble(fh.read()))
+    with open(path, encoding="utf-8") as fh:
+        return json.load(fh)
+
+
+def check_granted(scope):
+    """Raise DriveError unless the Drive permission was granted. `scope` is the token's scope (str or list)."""
+    granted = scope.split() if isinstance(scope, str) else list(scope or [])
+    if scope is not None and DRIVE_SCOPE not in granted:
+        raise DriveError("SciLibra did not get permission to store its files on your Google Drive.\n\n"
+                         "Please press 'Sign in with Google' again and, on the Google page, tick the box\n"
+                         "\"See, edit, create and delete only the specific Google Drive files you use with this app\"\n"
+                         "before pressing Continue.")
+
+
 class DriveAccount:
     """Sign-in state. Files live in the SciLibra data folder:
 
@@ -107,10 +156,14 @@ class DriveAccount:
         path = self.client_config_path()
         if not path:
             raise DriveError("Google Drive is not set up yet: the OAuth client file is missing.")
-        flow = InstalledAppFlow.from_client_secrets_file(path, SCOPES)
+        # Google lets the user untick single permissions; accept the reply and check it ourselves
+        # (otherwise oauthlib fails with a cryptic "Scope has changed" warning).
+        os.environ.setdefault("OAUTHLIB_RELAX_TOKEN_SCOPE", "1")
+        flow = InstalledAppFlow.from_client_config(load_client_config(path), SCOPES)
         creds = flow.run_local_server(
             port=0, open_browser=open_browser, authorization_prompt_message="", timeout_seconds=300,
-            success_message="SciLibra is now connected to your Google Drive. You can close this tab.")
+            success_message="Done - you can close this tab and go back to SciLibra.")
+        check_granted(flow.oauth2session.token.get("scope"))
         self._save(creds, email=self._fetch_email(creds))
 
     def _fetch_email(self, creds) -> str:

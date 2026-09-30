@@ -218,3 +218,35 @@ def test_rename_and_delete_keep_drive_state_consistent(synced, drive):
     assert report.uploaded == [] or report.uploaded == ["a1new"]
     lib.delete(["a1new"])
     assert "a1new" not in lib.db.drive_state()
+
+
+def test_sign_in_requires_drive_permission():
+    """Google lets users untick the Drive permission; that must give a clear error, not a crash."""
+    from scilibra.core.gdrive import DRIVE_SCOPE, DriveError, check_granted
+    check_granted(f"openid https://www.googleapis.com/auth/userinfo.email {DRIVE_SCOPE}")
+    check_granted(["openid", DRIVE_SCOPE])
+    check_granted(None)  # Google omits the scope when everything asked for was granted
+    with pytest.raises(DriveError, match="tick the box"):
+        check_granted("https://www.googleapis.com/auth/userinfo.email openid")
+
+
+def test_bundled_client_is_scrambled(tmp_path):
+    """The shipped client file must not contain the secret in plain text, but must load back unchanged."""
+    from scilibra.core.gdrive import bundle_client_file, load_client_config
+    config = {"installed": {"client_id": "123.apps.googleusercontent.com", "client_secret": "not-a-real-secret"}}
+    src, dat = tmp_path / "client.json", tmp_path / "google_client.dat"
+    src.write_text(json.dumps(config))
+    bundle_client_file(str(src), str(dat))
+    assert "not-a-real-secret" not in dat.read_text() and "client_secret" not in dat.read_text()
+    assert load_client_config(str(dat)) == config
+    assert load_client_config(str(src)) == config
+    account = DriveAccount(str(tmp_path / "home"), bundled_client=str(dat))
+    assert account.client_config_path() == str(dat)
+
+
+def test_shipped_client_file_is_valid():
+    from scilibra.core.gdrive import load_client_config
+    path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "scilibra", "assets", "google_client.dat")
+    if os.path.exists(path):
+        section = load_client_config(path)["installed"]
+        assert section["client_id"].endswith(".apps.googleusercontent.com") and section["client_secret"]

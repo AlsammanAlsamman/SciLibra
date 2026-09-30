@@ -603,7 +603,7 @@ def s_annotate_in_viewer():
     viewer.night = False
     viewer.go_to(3)
     yield 0.3
-    click(button(viewer, "X   Close"))
+    click(button(viewer, "\u00d7   Close"))
     yield 0.3
     assert viewer not in popups()
     # closing refreshes the details panel and remembers the page
@@ -647,7 +647,16 @@ def s_google_drive():
     drive_mod.webbrowser.open = lambda url: opened.append(url)
     drive_button = [w for w in app.root.walk() if w.__class__.__name__ == "DriveButton"][0]
     assert "Google Drive" in [c.text for c in drive_button.children if hasattr(c, "text")]
-    # 1) not set up: every button must react to a real click
+    # 0) with the OAuth client shipped in the app, users go straight to "Sign in with Google"
+    bundled = controller.account.bundled_client
+    if os.path.isfile(bundled):
+        click(drive_button)
+        yield FRAME
+        assert top(DriveDialog).state == "signin"
+        click(button(top(DriveDialog), "Close"))
+        yield FRAME
+    # 1) no client shipped (e.g. a fork): every button must react to a real click
+    controller.account.bundled_client = ""
     click(drive_button)
     dialog = top(DriveDialog)
     yield FRAME
@@ -845,10 +854,20 @@ def s_statistics_help_about():
 
 def s_menus():
     buttons = [w for w in app.root.walk() if getattr(w, "text", "") == "Library"]
+    # moving the mouse over a button highlights it (and must not crash)
+    Window.mouse_pos = buttons[0].to_window(*buttons[0].center)
+    assert buttons[0].hovered
+    Window.mouse_pos = (1, 1)
+    assert not buttons[0].hovered
     app.open_menu(buttons[0], "library")
     yield FRAME
-    shot("library_menu")
     from kivy.uix.dropdown import DropDown
+    menu = [w for w in Window.children if isinstance(w, DropDown)][0]
+    item = [w for w in menu.walk() if getattr(w, "text", "") == "Statistics"][0]
+    Window.mouse_pos = item.to_window(*item.center)
+    assert item.hovered and not buttons[0].hovered  # only the open menu reacts
+    yield FRAME
+    shot("library_menu")
     for w in list(Window.children):
         if isinstance(w, DropDown):
             w.dismiss()

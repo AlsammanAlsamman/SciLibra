@@ -72,19 +72,22 @@ macOS: `~/Library/Application Support/SciLibra`). Set `SCILIBRA_HOME` to use ano
 or the project folder is copied to the location above and upgraded (the original file is not changed,
 and a backup of the pre-upgrade copy is kept next to it).
 
-### Google Drive set-up (once)
+### Google Drive
 
-Google requires each app to have its own OAuth client. In SciLibra press **Google Drive** and follow
-the steps shown (about 5 minutes):
+Press **Google Drive** (top right) › **Sign in with Google**. Your browser opens; choose your account,
+tick the box *"See, edit, create and delete only the specific Google Drive files you use with this app"*
+and press **Continue**. That's all - the button turns green and the backup starts.
 
-1. Open [Google Cloud Console](https://console.cloud.google.com/apis/credentials) and create a project.
-2. *APIs & Services › Library*: enable **Google Drive API**.
-3. *OAuth consent screen*: choose *External*, fill in the app name and your e-mail, add yourself as a *test user*.
-4. *Credentials › Create credentials › OAuth client ID*, type **Desktop app**, then *Download JSON*.
-5. In SciLibra: **Load client file...**, then **Sign in with Google**.
+**Privacy:** SciLibra only gets access to the files it creates itself (a "SciLibra" folder on your
+Drive) - never to your other files. Your sign-in is stored only on your computer (readable by your
+user account only), and you can remove it at any time with *Sign out* or at
+[myaccount.google.com/permissions](https://myaccount.google.com/permissions).
 
-To give other users one-click sign-in, a maintainer can ship the client file as
-`scilibra/assets/google_client.json` (desktop-app client secrets are not confidential).
+*For maintainers:* the OAuth client (type **Desktop app**) ships as `scilibra/assets/google_client.dat`.
+To replace it, download the client JSON from Google Cloud Console and run
+`python -c "from scilibra.core.gdrive import bundle_client_file as b; b('client_secret.json', 'scilibra/assets/google_client.dat')"`.
+Never commit the JSON itself (it is git-ignored). Users can also use their own client with
+**Load client file...** in the Google Drive dialog.
 
 ### Desktop shortcut (Linux)
 

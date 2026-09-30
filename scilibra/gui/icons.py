@@ -168,8 +168,8 @@ class IconButton(ButtonBehavior, Widget):
         else:
             bg = (0, 0, 0, 0)
         self.canvas.add(Color(*bg))
-        self.canvas.add(RoundedRectangle(pos=self.pos, size=self.size, radius=[dp(5)]))
-        fg = list(theme.TEXT[:3]) + [0.35 if self.disabled else 1]
+        self.canvas.add(RoundedRectangle(pos=self.pos, size=self.size, radius=[dp(10)]))
+        fg = list(theme.on(theme.ACCENT)[:3] if self.active else theme.TEXT[:3]) + [0.35 if self.disabled else 1]
         width = self.width - (dp(10) if self.menu else 0)
         draw_icon(self.canvas, self.icon, self.x + width / 2, self.center_y, min(width, self.height) * 0.8,
                   fg, self.accent)

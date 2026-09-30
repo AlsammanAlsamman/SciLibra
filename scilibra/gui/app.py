@@ -24,7 +24,6 @@ from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.checkbox import CheckBox
 from kivy.uix.dropdown import DropDown
 from kivy.uix.label import Label
-from kivy.uix.widget import Widget
 from kivy.uix.recycleview.views import RecycleDataViewBehavior
 from kivy.utils import escape_markup
 
@@ -34,6 +33,7 @@ from ..core import bibtex, crossref
 from ..core.library import GROUP_FIELDS, SEARCH_FIELDS, Library
 from ..core.models import Article
 from . import theme
+from .widgets import HoverBehavior
 from .dialogs import ConfirmDialog, FileDialog, MessageDialog, ProgressDialog, TextDialog, ValuePicker
 from .editor import ArticleEditor
 from .viewer import PdfViewer, fill_annotation_list
@@ -46,7 +46,7 @@ ALL_ARTICLES = "All articles"
 GROUP_CHOICES = [ALL_ARTICLES] + list(GROUP_FIELDS)
 
 
-class ListRow(RecycleDataViewBehavior, ButtonBehavior, BoxLayout):
+class ListRow(RecycleDataViewBehavior, HoverBehavior, ButtonBehavior, BoxLayout):
     """A row in the library list: either a group ("GWAS  12") or an article."""
     index = None
     kind = StringProperty("article")
@@ -120,11 +120,13 @@ class SciLibraApp(App):
         self.rows: list[dict] = []
         self._busy = False
         self.drive = None
+        self._restart = False
+        theme.apply(os.environ.get("SCILIBRA_THEME") or self.settings.theme)
 
     # ------------------------------------------------------------------ lifecycle
     def build(self):
         self.icon = os.path.join(ASSETS, "icon.png")
-        Window.clearcolor = (0.105, 0.115, 0.135, 1)
+        Window.clearcolor = theme.BG
         Window.minimum_width, Window.minimum_height = dp(900), dp(560)
         Builder.load_file(os.path.join(HERE, "layout.kv"))
         root = Builder.load_string("SciLibraRoot:")
@@ -141,6 +143,19 @@ class SciLibraApp(App):
             self.drive.sync_before_exit()
         if self.library:
             self.library.close()
+        if self._restart:
+            os.execv(sys.executable, [sys.executable, "-m", "scilibra"] + sys.argv[1:])
+
+    def toggle_theme(self):
+        new = "dark" if theme.NAME == "light" else "light"
+
+        def restart():
+            self._restart = True
+            self.stop()
+        self.settings.theme = new
+        self.settings.save()
+        self.confirm("Appearance", f"SciLibra will use the {new} theme from the next start.\n"
+                     "Restart now to apply it?", restart, confirm_text="Restart now")
 
     def modified(self):
         """Called after every change to the library or its PDFs (triggers the Google Drive backup)."""
@@ -878,12 +893,15 @@ class SciLibraApp(App):
         popup.open()
 
     def open_menu(self, button, name):
-        menu = DropDown(auto_width=False, width=dp(300))
+        menu = DropDown(auto_width=False, width=dp(380))
+        menu.container.padding = dp(6)
         for label, action in MENUS[name]:
             if label is None:
-                menu.add_widget(Widget(size_hint_y=None, height=dp(6)))
+                menu.add_widget(Factory.MenuSeparator())
                 continue
-            item = Factory.FlatButton(text=label, halign="left", bg=theme.INPUT, height=dp(38))
+            if action == "toggle_theme":
+                label = "Switch to dark theme" if theme.NAME == "light" else "Switch to light theme"
+            item = Factory.MenuItem(text=label)
             item.bind(size=lambda w, _s: setattr(w, "text_size", (w.width - dp(24), None)))
             item.bind(on_release=lambda _b, act=action: (menu.dismiss(), Clock.schedule_once(
                 lambda _dt: self._run_action(act), 0.05)))
@@ -1020,6 +1038,7 @@ MENUS = {
         ("Find duplicates...", "find_duplicates"),
         ("Create missing previews", "refresh_thumbnails"),
         ("Statistics", "show_statistics"),
+        ("Switch theme", "toggle_theme"),
         (None, None),
         ("Export all to BibTeX...", "export_bibtex"),
         ("Export this list to BibTeX...", "export_view"),
