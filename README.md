@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="SciLibra_icon.png" alt="SciLibra logo" width="170">
+  <img src="https://raw.githubusercontent.com/AlsammanAlsamman/SciLibra/master/SciLibra_icon.png" alt="SciLibra logo" width="170">
 </p>
 
 <h1 align="center">SciLibra</h1>
@@ -11,6 +11,7 @@
 </p>
 
 <p align="center">
+  <a href="https://pypi.org/project/scilibra/"><img alt="PyPI" src="https://img.shields.io/pypi/v/scilibra?color=5B4CE0"></a>
   <img alt="Python" src="https://img.shields.io/badge/python-3.9%2B-3776AB?logo=python&logoColor=white">
   <img alt="Kivy" src="https://img.shields.io/badge/UI-Kivy-5B4CE0">
   <img alt="Platforms" src="https://img.shields.io/badge/platform-Linux%20%7C%20Windows%20%7C%20macOS-8E58F3">
@@ -27,7 +28,7 @@
 </p>
 
 <p align="center">
-  <img src="docs/screenshots/main.png" alt="SciLibra main window" width="900">
+  <img src="https://raw.githubusercontent.com/AlsammanAlsamman/SciLibra/master/docs/screenshots/main.png" alt="SciLibra main window" width="900">
 </p>
 
 ---
@@ -101,36 +102,42 @@
 
 <table>
 <tr>
-<td width="50%"><img src="docs/screenshots/groups.png" alt="Browse by keywords"><p align="center"><b>Browse by keywords, tag groups, authors, year or journal</b></p></td>
-<td width="50%"><img src="docs/screenshots/reader.png" alt="PDF reader with highlights"><p align="center"><b>Built-in reader with highlights and notes</b></p></td>
+<td width="50%"><img src="https://raw.githubusercontent.com/AlsammanAlsamman/SciLibra/master/docs/screenshots/groups.png" alt="Browse by keywords"><p align="center"><b>Browse by keywords, tag groups, authors, year or journal</b></p></td>
+<td width="50%"><img src="https://raw.githubusercontent.com/AlsammanAlsamman/SciLibra/master/docs/screenshots/reader.png" alt="PDF reader with highlights"><p align="center"><b>Built-in reader with highlights and notes</b></p></td>
 </tr>
 <tr>
-<td><img src="docs/screenshots/main-dark.png" alt="Dark theme"><p align="center"><b>Dark theme</b></p></td>
-<td><img src="docs/screenshots/help.png" alt="Help center"><p align="center"><b>Help center</b></p></td>
+<td><img src="https://raw.githubusercontent.com/AlsammanAlsamman/SciLibra/master/docs/screenshots/main-dark.png" alt="Dark theme"><p align="center"><b>Dark theme</b></p></td>
+<td><img src="https://raw.githubusercontent.com/AlsammanAlsamman/SciLibra/master/docs/screenshots/help.png" alt="Help center"><p align="center"><b>Help center</b></p></td>
 </tr>
 <tr>
-<td><img src="docs/screenshots/splash.png" alt="Start screen"><p align="center"><b>Start screen</b></p></td>
-<td><img src="docs/screenshots/about.png" alt="About page"><p align="center"><b>About</b></p></td>
+<td><img src="https://raw.githubusercontent.com/AlsammanAlsamman/SciLibra/master/docs/screenshots/splash.png" alt="Start screen"><p align="center"><b>Start screen</b></p></td>
+<td><img src="https://raw.githubusercontent.com/AlsammanAlsamman/SciLibra/master/docs/screenshots/about.png" alt="About page"><p align="center"><b>About</b></p></td>
 </tr>
 </table>
 
 ## 🚀 Installation
 
-Requires **Python 3.9 or newer**.
+Requires **Python 3.9 or newer**. Install from [PyPI](https://pypi.org/project/scilibra/):
+
+```bash
+pip install scilibra
+scilibra                            # start it (or: python -m scilibra)
+scilibra path/to/other-library.db   # open another library
+```
+
+Tip: install it in its own environment, e.g. `pipx install scilibra` or a virtual environment.
+
+<details>
+<summary><b>Install from source</b></summary>
 
 ```bash
 git clone https://github.com/AlsammanAlsamman/SciLibra.git
 cd SciLibra
 python3 -m venv .venv
 .venv/bin/pip install -e .          # Windows: .venv\Scripts\pip install -e .
+.venv/bin/scilibra
 ```
-
-Run it:
-
-```bash
-.venv/bin/scilibra                  # or: .venv/bin/python -m scilibra
-.venv/bin/scilibra path/to/other-library.db
-```
+</details>
 
 Your library lives in `~/.local/share/scilibra/library.db` (Windows: `%APPDATA%\SciLibra`,
 macOS: `~/Library/Application Support/SciLibra`). Set `SCILIBRA_HOME` to use another folder.
@@ -262,7 +269,7 @@ lib.export_bibtex("out.bib")
 
 <table>
 <tr>
-<td width="150" align="center"><img src="scilibra/assets/author.png" alt="Alsamman M. Alsamman" width="130"></td>
+<td width="150" align="center"><img src="https://raw.githubusercontent.com/AlsammanAlsamman/SciLibra/master/scilibra/assets/author.png" alt="Alsamman M. Alsamman" width="130"></td>
 <td>
 
 **Alsamman M. Alsamman** - creator of SciLibra
