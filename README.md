@@ -1,54 +1,122 @@
-![SciLibra icon](SciLibra_icon.png)
+<p align="center">
+  <img src="SciLibra_icon.png" alt="SciLibra logo" width="170">
+</p>
 
-# SciLibra
+<h1 align="center">SciLibra</h1>
 
-SciLibra is a free and open-source desktop application for managing scientific articles.
-Keep your BibTeX references and PDF files together, browse them by keywords, tag groups,
-authors, year or journal, search everything, write comments, and export clean BibTeX.
+<p align="center">
+  <b>Your scientific articles, PDFs and notes - organised, searchable and safely backed up.</b><br>
+  A free, open-source desktop app for researchers: BibTeX + PDF library, built-in PDF reader &amp; annotator,
+  and one-click Google Drive backup.
+</p>
 
-## Features
+<p align="center">
+  <img alt="Python" src="https://img.shields.io/badge/python-3.9%2B-3776AB?logo=python&logoColor=white">
+  <img alt="Kivy" src="https://img.shields.io/badge/UI-Kivy-5B4CE0">
+  <img alt="Platforms" src="https://img.shields.io/badge/platform-Linux%20%7C%20Windows%20%7C%20macOS-8E58F3">
+  <img alt="License" src="https://img.shields.io/badge/license-MIT-2E8E4E">
+</p>
 
-- **Add articles in several ways**
-  - import a `.bib` file (all entry types: article, inproceedings, book, thesis, ...).
-    PDFs named `<key>.pdf` next to the file are linked automatically;
-  - paste BibTeX copied from Google Scholar, a journal website, etc.;
-  - **add PDF files or a whole folder of PDFs**: the DOI is read from each PDF and the
-    details (title, authors, journal, year, abstract...) are downloaded from Crossref.
-    Without internet the title is taken from the PDF, and you can complete it later;
-  - fill in a form (type a DOI and press *Fetch details* to fill it for you).
-- **Browse** by keywords, tag groups, authors, year or journal, with the number of articles in each group,
-  and a filter box that narrows any list as you type.
-- **Search** titles, authors, abstracts, keywords, tag groups, journal, year, comments, key and DOI.
-  Several terms can be separated with `;` (any term, or all terms).
-- **Article details** with a preview of the first page, clickable DOI/URL, keywords, tag groups,
-  abstract and your comments.
-- **Built-in PDF reader & annotator** (double-click, Enter or *Open PDF*):
-  - continuous scrolling, zoom (Ctrl+wheel, +/-, fit width), go to page, find text, table of contents,
-    night mode, and it reopens each paper at the page where you stopped;
-  - an icon toolbar like Word/Acrobat: **highlight, underline, strikethrough** text, **sticky notes**, **text boxes**, **pen**,
-    **shapes** (rectangle, ellipse, arrow, line), eraser, colour picker (6 colours), click an annotation to edit its note/colour
-    or delete it, undo (Ctrl+Z);
-  - select text to **copy it, copy it as a quote with citation** ("..." (Xu et al., 2024, p. 5)),
-    highlight it or save it as a comment;
-  - annotations are saved **inside the PDF** as standard PDF annotations, so Acrobat, Zotero, Okular,
-    etc. show them too. The original PDF is backed up (in the SciLibra data folder) before the first change.
-- **Your notes, everywhere**: highlights and sticky notes made in any PDF reader are shown with the
-  article, are searchable, can be saved as comments, and can be **exported to Markdown** (one article or a
-  whole list) for literature reviews.
-- **Google Drive backup & sync**: sign in once (Google Drive button, top right - it turns green when
-  connected) and SciLibra backs up the library and every PDF (with your annotations) to a "SciLibra"
-  folder on your Drive, automatically after changes and when closing. *Restore from Drive* sets up the
-  same library on another computer. SciLibra only gets access to the files it creates (`drive.file`).
-- **PDF handling**: attach a PDF with any file name, link a whole folder of PDFs at once,
-  list articles without a PDF, open in your usual PDF application.
-- **Maintenance**: find and merge duplicates (same DOI or title), statistics, export all articles
-  or only the current list to BibTeX, several libraries (*Library › Open / New*).
-- Safe by design: confirmations before deleting, PDF files are never deleted, the database is
-  upgraded with an automatic backup.
+<p align="center">
+  <a href="#-features">Features</a> ·
+  <a href="#-screenshots">Screenshots</a> ·
+  <a href="#-installation">Installation</a> ·
+  <a href="#-quick-start">Quick start</a> ·
+  <a href="#%EF%B8%8F-google-drive-backup">Google Drive backup</a> ·
+  <a href="#-the-author">Author</a>
+</p>
 
-## Installation
+<p align="center">
+  <img src="docs/screenshots/main.png" alt="SciLibra main window" width="900">
+</p>
 
-Requires Python 3.9 or newer.
+---
+
+## ✨ Features
+
+<table>
+<tr>
+<td width="50%" valign="top">
+
+### 📥 Add articles your way
+- **Import a `.bib` file** - every entry type; PDFs named `<key>.pdf` next to it are linked automatically
+- **Paste BibTeX** from Google Scholar or a journal website
+- **Drop in PDFs** (files or a whole folder) - the DOI is read from each PDF and the details are
+  downloaded from Crossref
+- **Fill in a form** - or just type a DOI and press *Fetch details*
+
+</td>
+<td width="50%" valign="top">
+
+### 🔎 Find anything in seconds
+- **Group by** keywords, tag groups, authors, year or journal - with counts
+- **Filter** any list as you type
+- **Search** titles, authors, abstracts, keywords, comments, DOI… and the notes inside your PDFs
+- Several terms with `;` - any term, or all of them
+
+</td>
+</tr>
+<tr>
+<td valign="top">
+
+### 📖 Read & annotate
+- Built-in reader that **reopens each paper where you stopped**
+- **Highlight, underline, strike out, sticky notes, text boxes, pen, shapes**, eraser, 6 colours, undo
+- Select text to **copy it with a citation** - “…” (Xu et al., 2024, p. 5)
+- Annotations are **saved inside the PDF**, so Acrobat, Zotero or Okular show them too
+
+</td>
+<td valign="top">
+
+### 📝 Your notes, everywhere
+- Every highlight and note is listed with the article and is **searchable**
+- Save them as comments, or **export them to Markdown** for your literature review
+- Add your own comments and **tag groups** (*to-read*, *thesis chapter 2*…)
+
+</td>
+</tr>
+<tr>
+<td valign="top">
+
+### ☁️ One-click Google Drive backup
+- Library, PDFs and annotations backed up automatically
+- A dated copy every day for the last 10 days
+- **Restore everything** on a new computer
+- SciLibra only sees the files it created - never your other Drive files
+
+</td>
+<td valign="top">
+
+### 🎨 Modern and friendly
+- Material-style design, **light and dark themes**
+- Animated start screen, hover effects, rounded cards
+- A **Help center** with step-by-step guides and keyboard shortcuts
+- Safe by design: confirmations before deleting, PDFs are never deleted, automatic backups
+
+</td>
+</tr>
+</table>
+
+## 📸 Screenshots
+
+<table>
+<tr>
+<td width="50%"><img src="docs/screenshots/groups.png" alt="Browse by keywords"><p align="center"><b>Browse by keywords, tag groups, authors, year or journal</b></p></td>
+<td width="50%"><img src="docs/screenshots/reader.png" alt="PDF reader with highlights"><p align="center"><b>Built-in reader with highlights and notes</b></p></td>
+</tr>
+<tr>
+<td><img src="docs/screenshots/main-dark.png" alt="Dark theme"><p align="center"><b>Dark theme</b></p></td>
+<td><img src="docs/screenshots/help.png" alt="Help center"><p align="center"><b>Help center</b></p></td>
+</tr>
+<tr>
+<td><img src="docs/screenshots/splash.png" alt="Start screen"><p align="center"><b>Start screen</b></p></td>
+<td><img src="docs/screenshots/about.png" alt="About page"><p align="center"><b>About</b></p></td>
+</tr>
+</table>
+
+## 🚀 Installation
+
+Requires **Python 3.9 or newer**.
 
 ```bash
 git clone https://github.com/AlsammanAlsamman/SciLibra.git
@@ -57,88 +125,106 @@ python3 -m venv .venv
 .venv/bin/pip install -e .          # Windows: .venv\Scripts\pip install -e .
 ```
 
-## Running
+Run it:
 
 ```bash
 .venv/bin/scilibra                  # or: .venv/bin/python -m scilibra
 .venv/bin/scilibra path/to/other-library.db
-.venv/bin/scilibra --help
 ```
 
-Your library is stored in `~/.local/share/scilibra/library.db` (Windows: `%APPDATA%\SciLibra`,
+Your library lives in `~/.local/share/scilibra/library.db` (Windows: `%APPDATA%\SciLibra`,
 macOS: `~/Library/Application Support/SciLibra`). Set `SCILIBRA_HOME` to use another folder.
 
-**Coming from SciLibra 1.x?** On the first start, an existing `scilibraLibrary.db` in the current folder
-or the project folder is copied to the location above and upgraded (the original file is not changed,
-and a backup of the pre-upgrade copy is kept next to it).
-
-### Google Drive
-
-Press **Google Drive** (top right) › **Sign in with Google**. Your browser opens; choose your account,
-tick the box *"See, edit, create and delete only the specific Google Drive files you use with this app"*
-and press **Continue**. That's all - the button turns green and the backup starts.
-
-**Privacy:** SciLibra only gets access to the files it creates itself (a "SciLibra" folder on your
-Drive) - never to your other files. Your sign-in is stored only on your computer (readable by your
-user account only), and you can remove it at any time with *Sign out* or at
-[myaccount.google.com/permissions](https://myaccount.google.com/permissions).
-
-*For maintainers:* the OAuth client (type **Desktop app**) ships as `scilibra/assets/google_client.dat`.
-To replace it, download the client JSON from Google Cloud Console and run
-`python -c "from scilibra.core.gdrive import bundle_client_file as b; b('client_secret.json', 'scilibra/assets/google_client.dat')"`.
-Never commit the JSON itself (it is git-ignored). Users can also use their own client with
-**Load client file...** in the Google Drive dialog.
-
-### Desktop shortcut (Linux)
+<details>
+<summary><b>Desktop shortcut (Linux)</b></summary>
 
 Edit the paths in `SciLibra.desktop`, then:
 
 ```bash
 cp SciLibra.desktop ~/.local/share/applications/
 ```
+</details>
 
-## Quick start
+<details>
+<summary><b>Coming from SciLibra 1.x?</b></summary>
+
+On the first start, an existing `scilibraLibrary.db` in the current folder or the project folder is copied
+to the location above and upgraded. The original file is not changed, and a backup of the pre-upgrade copy
+is kept next to it.
+</details>
+
+## 🧭 Quick start
 
 1. **Add › Import BibTeX file** (or **Add › Add PDF files**).
-2. If your PDFs are elsewhere: **Library › Link PDF folder** — PDFs named `<key>.pdf` in that folder
-   (and sub-folders) are connected to their articles. For other file names use **Attach PDF...**.
-3. Choose **Group by › Keywords** (or Tag groups, Authors, ...) and click a group to open it.
-4. Select an article to see its details; double-click it to read and annotate the PDF.
+2. PDFs somewhere else? **Library › Link PDF folder** connects PDFs named `<key>.pdf` in that folder and its
+   sub-folders. For other file names use **Attach PDF…**
+3. Choose **Group by › Keywords** (or Tag groups, Authors…) and click a group to open it.
+4. Select an article to see its details - double-click it to read and annotate the PDF.
+5. Press **Google Drive** (top right) to switch on the backup.
 
-In the reader, pick a tool (keyboard: **H** highlight, **U** underline, **S** strike, **N** note,
-**B** text box, **D** pen, **R** rectangle, **O** ellipse, **A** arrow, **L** line, **E** eraser, **T** select text,
-**V** select/scroll), pick a colour, and drag or click on the page. **Esc** returns to scrolling, then to the library.
+Everything is also explained inside the app: **Help › How to use SciLibra**.
 
-Keyboard: `Ctrl+F` search · `Ctrl+L` filter · `Ctrl+I` import BibTeX · `Ctrl+N` new article ·
-`Ctrl+E` edit · `Ctrl+O`/`Enter` open PDF · `↑`/`↓` move · `Esc` back.
+### ⌨️ Keyboard shortcuts
 
-### Example BibTeX entry
+| Main window | | PDF reader | |
+|---|---|---|---|
+| `Ctrl+F` | Search the library | `H` `U` `S` | Highlight · underline · strike |
+| `Ctrl+L` | Filter the list | `N` `B` | Sticky note · text box |
+| `Ctrl+I` | Import BibTeX | `D` `R` `O` `A` `L` | Pen · rectangle · ellipse · arrow · line |
+| `Ctrl+N` | New article | `E` `V` `T` | Eraser · select · select text |
+| `Ctrl+E` | Edit | `Ctrl+Z` | Undo |
+| `Ctrl+O` / `Enter` | Open the PDF | `Ctrl+F` | Find in the PDF |
+| `↑` `↓` | Move in the list | `PgUp` `PgDn` | Previous / next page |
+| `Esc` | Back | `Esc` | Close the reader |
 
-```bibtex
-@article{alsamman2023alignstatplot,
-  title={AlignStatPlot: An R package and online tool for robust sequence alignment statistics and innovative visualization of big data},
-  author={Alsamman, Alsamman M and El Allali, Achraf and Mokhtar, Morad M and Kehel, Zakaria},
-  journal={PloS one},
-  volume={18},
-  number={9},
-  pages={e0291204},
-  year={2023},
-  taggroups={Bioinformatics, Tools},
-}
+## ☁️ Google Drive backup
+
+Press **Google Drive** › **Sign in with Google**. Your browser opens: choose your account, tick
+*"See, edit, create and delete only the specific Google Drive files you use with this app"* and press
+**Continue**. The button turns green and the backup starts.
+
+What is stored in the **SciLibra** folder on your Drive:
+
+```
+SciLibra/
+├── library.db                      the whole library: details, keywords, tag groups, comments, previews
+├── Backups/library-YYYY-MM-DD.db   one copy per day, last 10 days
+└── PDFs/<key>.pdf                  every PDF, including your highlights and notes
 ```
 
-`taggroups` are your own groups (e.g. *to-read*, *thesis chapter 2*). With the PDF saved as
-`alsamman2023alignstatplot.pdf`, *Link PDF folder* connects it automatically.
+After the first backup only what changed is uploaded - a few seconds after each change and when you close
+SciLibra. Temporary Google errors are retried automatically. **Restore from Drive…** sets up the same
+library, with all PDFs, on another computer.
 
-## Development
+**Privacy:** SciLibra only gets access to the files it creates itself (`drive.file`) - never to your other
+files. Your sign-in is stored only on your computer, and you can remove it at any time with *Sign out* or at
+[myaccount.google.com/permissions](https://myaccount.google.com/permissions).
+
+<details>
+<summary><b>For maintainers: the OAuth client</b></summary>
+
+The OAuth client (type **Desktop app**) ships as `scilibra/assets/google_client.dat`. To replace it, download
+the client JSON from Google Cloud Console and run
+
+```bash
+python -c "from scilibra.core.gdrive import bundle_client_file as b; b('client_secret.json', 'scilibra/assets/google_client.dat')"
+```
+
+Never commit the JSON itself (it is git-ignored). Users can also use their own client with
+**Load client file…** in the Google Drive dialog.
+</details>
+
+## 🛠️ Development
 
 ```bash
 .venv/bin/pip install -e ".[test]"
-.venv/bin/python -m pytest              # core tests + end-to-end GUI scenario (needs a display)
-.venv/bin/python tests/gui_scenario.py shots/   # run the GUI scenario and keep screenshots
+.venv/bin/python -m pytest                        # core tests + end-to-end GUI scenario
+.venv/bin/python tests/gui_scenario.py shots/     # run the GUI scenario and keep its screenshots
+.venv/bin/python tools/make_screenshots.py        # refresh the README screenshots (add --dark for dark)
 ```
 
-Project layout:
+<details>
+<summary><b>Project layout</b></summary>
 
 ```
 scilibra/
@@ -149,11 +235,18 @@ scilibra/
     pdf.py         first-page previews, DOI detection, reading annotations (PyMuPDF)
     annotate.py    creating/editing annotations and saving them into the PDF
     crossref.py    DOI -> metadata (Crossref REST API)
+    gdrive.py      Google Drive sign-in, backup and restore
     library.py     high-level operations: import, link PDFs, search, duplicates, statistics
-  gui/             Kivy user interface (app.py, viewer.py, dialogs.py, editor.py, layout.kv)
+  gui/             Kivy user interface
+    app.py         main window           viewer.py      PDF reader / annotator
+    theme.py       colours (light/dark)  widgets.py     hover, rounded fields
+    splash.py      start screen          helpcenter.py  Help center and About
+    layout.kv      the look of everything
   config.py        settings and data locations
 tests/             pytest suite and GUI scenario
+tools/             screenshot generator
 ```
+</details>
 
 Using the core from Python:
 
@@ -165,10 +258,25 @@ print(lib.search("GWAS").keys)
 lib.export_bibtex("out.bib")
 ```
 
-## About the author
+## 👤 The author
 
-- **Created by:** Alsamman M. Alsamman
-- **Emails:** smahmoud [at] ageri.sci.eg, A.Alsamman [at] cgiar.org, SammanMohammed [at] gmail.com
-- **License:** [MIT License](https://opensource.org/licenses/MIT)
-- **Disclaimer:** the software comes with no warranty, use at your own risk.
-- **This software is not intended for commercial use.**
+<table>
+<tr>
+<td width="150" align="center"><img src="scilibra/assets/author.png" alt="Alsamman M. Alsamman" width="130"></td>
+<td>
+
+**Alsamman M. Alsamman** - creator of SciLibra
+
+📧 smahmoud [at] ageri.sci.eg · A.Alsamman [at] cgiar.org · SammanMohammed [at] gmail.com<br>
+🐙 [github.com/AlsammanAlsamman](https://github.com/AlsammanAlsamman)
+
+Found a bug or have an idea? [Open an issue](https://github.com/AlsammanAlsamman/SciLibra/issues).
+
+</td>
+</tr>
+</table>
+
+## 📄 License
+
+[MIT License](https://opensource.org/licenses/MIT). The software comes with no warranty - use at your own
+risk. This software is not intended for commercial use.
