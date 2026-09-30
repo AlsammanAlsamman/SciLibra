@@ -20,6 +20,7 @@ import logging
 import os
 import shutil
 import tempfile
+import time
 from dataclasses import dataclass, field
 
 log = logging.getLogger(__name__)
@@ -33,6 +34,12 @@ ROOT_FOLDER = "SciLibra"
 CHUNK = 8 * 1024 * 1024
 KEEP_DAILY_BACKUPS = 10
 TIMEOUT = 60
+# Temporary Google errors (overloaded server, rate limit): wait and try again, as Google recommends.
+RETRY_STATUS = {408, 429, 500, 502, 503, 504}
+RETRY_WAITS = (2, 4, 8, 16, 32, 60)     # seconds between attempts
+NETWORK_RETRIES = 2                    # connection errors: retry quickly, twice
+MAX_FAILURES_IN_A_ROW = 3              # stop a sync when Drive keeps failing
+_sleep = time.sleep                    # replaced in tests
 
 
 class DriveError(Exception):
@@ -240,14 +247,29 @@ class DriveClient:
             raise DriveError(f"Google Drive: {what} failed (HTTP {response.status_code}) {message}".strip())
         return response
 
-    def _request(self, method, url, what, **kwargs):
+    def _send(self, method, url, what, **kwargs):
+        """One HTTP call, retried after temporary errors (HTTP 5xx/429, connection problems)."""
         import requests
         kwargs.setdefault("timeout", TIMEOUT)
-        try:
-            response = getattr(self.session, method)(url, **kwargs)
-        except requests.RequestException as exc:
-            raise DriveError(f"Google Drive cannot be reached ({what}): {exc}") from exc
-        return self._check(response, what)
+        for attempt, wait in enumerate(RETRY_WAITS + (None,)):
+            try:
+                response = getattr(self.session, method)(url, **kwargs)
+            except requests.RequestException as exc:
+                # no internet at all: say so quickly instead of waiting through the whole retry schedule
+                if wait is None or attempt >= NETWORK_RETRIES:
+                    raise DriveError(f"Google Drive cannot be reached ({what}): {exc}") from exc
+                log.info("Google Drive %s: %s - retrying in %ss", what, exc, wait)
+            else:
+                if response.status_code not in RETRY_STATUS or wait is None:
+                    return response
+                retry_after = response.headers.get("Retry-After", "")
+                if retry_after.isdigit():
+                    wait = min(int(retry_after), 120)
+                log.info("Google Drive %s: HTTP %s - retrying in %ss", what, response.status_code, wait)
+            _sleep(wait)
+
+    def _request(self, method, url, what, **kwargs):
+        return self._check(self._send(method, url, what, **kwargs), what)
 
     @staticmethod
     def _quote(name):
@@ -255,11 +277,8 @@ class DriveClient:
 
     def get(self, file_id):
         """File metadata, or None if it does not exist (or is in the trash)."""
-        import requests
-        try:
-            response = self.session.get(f"{API}/files/{file_id}", params={"fields": self.FIELDS}, timeout=TIMEOUT)
-        except requests.RequestException as exc:
-            raise DriveError(f"Google Drive cannot be reached: {exc}") from exc
+        response = self._send("get", f"{API}/files/{file_id}", "reading file information",
+                              params={"fields": self.FIELDS})
         if response.status_code == 404:
             return None
         data = self._check(response, "reading file information").json()
@@ -309,18 +328,52 @@ class DriveClient:
         if not location:
             raise DriveError("Google Drive did not accept the upload.")
         with open(path, "rb") as fh:
-            offset = 0
+            offset, stalled = 0, 0
             while True:
+                fh.seek(offset)
                 chunk = fh.read(CHUNK)
                 end = offset + len(chunk) - 1
                 headers = {"Content-Length": str(len(chunk)),
                            "Content-Range": f"bytes {offset}-{end}/{size}" if size else "bytes */0"}
-                response = self._request("put", location, "uploading", data=chunk, headers=headers)
-                offset += len(chunk)
+                response = self._send("put", location, "uploading", data=chunk, headers=headers)
                 if response.status_code in (200, 201):
                     return response.json()
-                if response.status_code != 308 or offset >= size:
+                if response.status_code == 308:
+                    new_offset = self._received(response, offset + len(chunk))
+                elif response.status_code in RETRY_STATUS:
+                    # Still failing after the retries: ask Drive how much it has, and continue from there.
+                    new_offset = self._upload_status(location, size, name)
+                    if isinstance(new_offset, dict):
+                        return new_offset
+                else:
+                    self._check(response, f"uploading {name}")
                     raise DriveError(f"Upload of {name} was interrupted (HTTP {response.status_code}).")
+                stalled = stalled + 1 if new_offset <= offset else 0
+                if stalled > 2:
+                    raise DriveError(f"Upload of {name} does not progress (HTTP {response.status_code}).")
+                offset = new_offset
+
+    @staticmethod
+    def _received(response, default):
+        """Bytes Drive has received, from the Range header of a 308 reply ("bytes=0-1234")."""
+        value = response.headers.get("Range") or response.headers.get("range")
+        if not value:
+            return 0 if default is None else default
+        try:
+            return int(value.rsplit("-", 1)[1]) + 1
+        except (IndexError, ValueError):
+            return 0 if default is None else default
+
+    def _upload_status(self, location, size, name):
+        """Offset to resume an interrupted upload from, or the file metadata if it is already complete."""
+        response = self._send("put", location, "checking an upload", data=b"",
+                              headers={"Content-Length": "0", "Content-Range": f"bytes */{size}"})
+        if response.status_code in (200, 201):
+            return response.json()
+        if response.status_code == 308:
+            return self._received(response, None)
+        self._check(response, f"uploading {name}")
+        raise DriveError(f"Upload of {name} was interrupted (HTTP {response.status_code}).")
 
     def download(self, file_id, dest):
         folder = os.path.dirname(os.path.abspath(dest))
@@ -363,7 +416,7 @@ class SyncReport:
         if self.downloaded:
             parts.append(f"{len(self.downloaded)} PDFs downloaded")
         if self.failed:
-            parts.append(f"{len(self.failed)} failed")
+            parts.append(f"{len(self.failed)} PDFs skipped after errors (tried again at the next backup)")
         return ", ".join(parts) or "nothing to do"
 
 
@@ -446,6 +499,7 @@ class DriveSync:
         remote = self.client.list(pdfs)
         by_id = {f["id"]: f for f in remote}
         by_name = {f["name"]: f for f in remote}
+        failures_in_a_row = 0
         for i, (article, path, st, row) in enumerate(jobs):
             if cancelled():
                 break
@@ -474,9 +528,19 @@ class DriveSync:
                         file_id = meta["id"]
                         report.uploaded.append(article.key)
                 self.db.set_drive_state(article.key, path, st.st_mtime, st.st_size, md5, file_id)
+                failures_in_a_row = 0
             except OSError as exc:
                 log.warning("Cannot upload %s: %s", path, exc)
                 report.failed.append(article.key)
+            except DriveError as exc:
+                # Skip this PDF (it is tried again next time); give up only if Drive keeps failing.
+                log.warning("Cannot upload %s: %s", path, exc)
+                report.failed.append(article.key)
+                failures_in_a_row += 1
+                if failures_in_a_row >= MAX_FAILURES_IN_A_ROW:
+                    raise DriveError(f"{exc}\n\nGoogle Drive failed {failures_in_a_row} times in a row, so the "
+                                     f"backup was paused. Everything uploaded so far is kept; press "
+                                     f"'Back up now' later to continue.") from exc
         if progress:
             progress(len(jobs), len(jobs), "")
 

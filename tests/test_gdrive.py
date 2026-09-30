@@ -19,6 +19,14 @@ def drive():
     return FakeDrive()
 
 
+@pytest.fixture(autouse=True)
+def no_wait(monkeypatch):
+    """Retries wait between attempts; tests record the waits instead of sleeping."""
+    waits = []
+    monkeypatch.setattr(gdrive, "_sleep", waits.append)
+    return waits
+
+
 @pytest.fixture
 def synced(tmp_path, drive):
     pdfs = tmp_path / "pdfs"
@@ -250,3 +258,62 @@ def test_shipped_client_file_is_valid():
     if os.path.exists(path):
         section = load_client_config(path)["installed"]
         assert section["client_id"].endswith(".apps.googleusercontent.com") and section["client_secret"]
+
+
+def test_upload_retries_temporary_errors(drive, tmp_path, no_wait):
+    """HTTP 502 from Google (overloaded server) is retried instead of failing the backup."""
+    path = tmp_path / "a.pdf"
+    path.write_bytes(b"%PDF" + b"x" * 5000)
+    drive.put_errors = [502, 503]
+    meta = DriveClient(drive).upload(str(path), "a.pdf", "root")
+    assert drive.content("a.pdf") == path.read_bytes() and meta["name"] == "a.pdf"
+    assert no_wait == [2, 4]
+
+
+def test_upload_resumes_after_lost_chunks(drive, tmp_path, no_wait, monkeypatch):
+    """When a chunk keeps failing, the upload asks Drive what arrived and continues from there."""
+    monkeypatch.setattr(gdrive, "CHUNK", 1000)
+    path = tmp_path / "big.pdf"
+    path.write_bytes(bytes(range(256)) * 20)
+    drive.lose_chunk = True
+    drive.put_errors = [502] * (len(gdrive.RETRY_WAITS) + 1) + [504]
+    DriveClient(drive).upload(str(path), "big.pdf", "root")
+    assert drive.content("big.pdf") == path.read_bytes()
+
+
+def test_sync_skips_a_failing_pdf_and_continues(drive, tmp_path, no_wait, monkeypatch):
+    lib = Library(str(tmp_path / "lib.db"))
+    for key in ("a2020", "b2020", "c2020"):
+        make_pdf(tmp_path / f"{key}.pdf", f"text of {key}")
+        lib.add(Article(key=key, title=key, folderpath=str(tmp_path)))
+    client = DriveClient(drive)
+    real_upload = client.upload
+    def flaky(path, name, *a, **kw):
+        if name == "b2020.pdf":
+            raise DriveError("Google Drive: uploading failed (HTTP 502)")
+        return real_upload(path, name, *a, **kw)
+    client.upload = flaky
+    report = DriveSync(lib, client).sync()
+    assert report.failed == ["b2020"] and sorted(report.uploaded) == ["a2020", "c2020"]
+    # the next sync only retries the failed one
+    client.upload = real_upload
+    report = DriveSync(lib, client).sync()
+    assert report.uploaded == ["b2020"]
+    lib.close()
+
+
+def test_sync_pauses_when_drive_keeps_failing(drive, tmp_path, no_wait):
+    lib = Library(str(tmp_path / "lib.db"))
+    for key in ("a2020", "b2020", "c2020", "d2020"):
+        make_pdf(tmp_path / f"{key}.pdf", f"text of {key}")
+        lib.add(Article(key=key, title=key, folderpath=str(tmp_path)))
+    client = DriveClient(drive)
+    real_upload = client.upload
+    def failing_pdfs(path, name, *a, **kw):
+        if name.endswith(".pdf"):
+            raise DriveError("Google Drive: uploading failed (HTTP 502)")
+        return real_upload(path, name, *a, **kw)
+    client.upload = failing_pdfs
+    with pytest.raises(DriveError, match="paused"):
+        DriveSync(lib, client).sync()
+    lib.close()

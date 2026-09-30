@@ -35,6 +35,8 @@ class FakeDrive:
         self.offline = False
         self.requests = []   # (method, url) log
         self.upload_count = 0
+        self.put_errors = []     # HTTP status codes to answer the next upload PUTs with (e.g. [502])
+        self.lose_chunk = False  # when failing a PUT, drop its data (like a broken connection)
 
     # helpers for tests
     def by_name(self, name):
@@ -102,10 +104,24 @@ class FakeDrive:
     def put(self, url, data=None, headers=None, **_kw):
         self._check()
         file_id, meta, buffer = self.uploads[url]
-        buffer.extend(data)
-        total = int(headers["Content-Range"].rsplit("/", 1)[1])
-        if len(buffer) < total:
-            return FakeResponse(308, {})
+        content_range = headers["Content-Range"]
+        total = int(content_range.rsplit("/", 1)[1])
+        if content_range.startswith("bytes */") and not data and total:  # status query
+            if len(buffer) < total:
+                return FakeResponse(308, {}, headers={"Range": f"bytes=0-{len(buffer) - 1}"} if buffer else {})
+        else:
+            if self.put_errors:
+                status = self.put_errors.pop(0)
+                if not self.lose_chunk:
+                    start = int(content_range.split()[1].split("-")[0])
+                    del buffer[start:]
+                    buffer.extend(data)
+                return FakeResponse(status, {"error": {"message": "Bad Gateway"}})
+            start = int(content_range.split()[1].split("-")[0]) if not content_range.startswith("bytes */") else 0
+            del buffer[start:]
+            buffer.extend(data)
+            if len(buffer) < total:
+                return FakeResponse(308, {}, headers={"Range": f"bytes=0-{len(buffer) - 1}"})
         self.upload_count += 1
         if file_id is None:
             file_id = next(self.ids)
